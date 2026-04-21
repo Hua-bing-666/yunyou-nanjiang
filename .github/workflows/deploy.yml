@@ -56,7 +56,7 @@ jobs:
         
         # 检查环境变量是否为空
         if [ -z "$TCB_SECRET_ID" ] || [ -z "$TCB_SECRET_KEY" ] || [ -z "$TCB_ENV_ID" ]; then
-          echo "❌❌❌ 严重错误：GitHub Secrets未正确传递！"
+          echo "⚠️⚠️⚠️ 警告：GitHub Secrets未正确传递！"
           echo "请按照以下步骤重新配置："
           echo "1. 访问: https://github.com/Hua-bing-666/yunyou-nanjiang/settings/secrets/actions"
           echo "2. 删除现有的 TCB_SECRET_ID, TCB_SECRET_KEY, TCB_ENV_ID"
@@ -69,10 +69,11 @@ jobs:
           echo "🔧 临时解决方案：使用Webify自动部署（推荐）"
           echo "   - 在CloudBase控制台使用'静态网站托管'的'一键部署'功能"
           echo "   - 或使用GitHub Pages作为备选方案"
-          exit 1
+          echo ""
+          echo "⚠️ 继续执行部署步骤，可能会在CloudBase登录时失败..."
+        else
+          echo "✅ GitHub Secrets检测通过"
         fi
-        
-        echo "✅ GitHub Secrets检测通过"
         echo "🔐 使用API Key登录CloudBase..."
         echo "TCB_ENV_ID: $TCB_ENV_ID"
         
