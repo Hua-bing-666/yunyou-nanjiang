@@ -44,6 +44,11 @@ jobs:
         echo "   分支: ${{ github.ref }}"
         echo "   提交: ${{ github.sha }}"
         
+        echo "🔍 调试信息：检查环境变量"
+        echo "TCB_SECRET_ID长度: ${#TCB_SECRET_ID}"
+        echo "TCB_SECRET_KEY长度: ${#TCB_SECRET_KEY}"
+        echo "TCB_ENV_ID长度: ${#TCB_ENV_ID}"
+        
         if [ -z "$TCB_SECRET_ID" ] || [ -z "$TCB_SECRET_KEY" ] || [ -z "$TCB_ENV_ID" ]; then
           echo "❌ 缺少CloudBase配置，请在GitHub Secrets中设置："
           echo "   TCB_SECRET_ID, TCB_SECRET_KEY, TCB_ENV_ID"
