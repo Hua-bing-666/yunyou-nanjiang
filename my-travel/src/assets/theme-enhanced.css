@@ -82,7 +82,7 @@
   --gray-800: #424242;
   --gray-900: #212121;
   
-  /* 响应式断点系统 */
+/* 响应式断点系统（保留变量，媒体查询中使用硬编码值） */
   --breakpoint-xs: 0;
   --breakpoint-sm: 576px;
   --breakpoint-md: 768px;
@@ -368,19 +368,19 @@
   gap: 16px;
 }
 
-@media (min-width: var(--breakpoint-md)) {
+@media (min-width: 768px) {
   .responsive-grid {
     grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media (min-width: var(--breakpoint-lg)) {
+@media (min-width: 992px) {
   .responsive-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (min-width: var(--breakpoint-xl)) {
+@media (min-width: 1200px) {
   .responsive-grid {
     grid-template-columns: repeat(4, 1fr);
     gap: 24px;
