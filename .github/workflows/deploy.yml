@@ -56,37 +56,40 @@ jobs:
         
         # 检查环境变量是否为空
         if [ -z "$TCB_SECRET_ID" ] || [ -z "$TCB_SECRET_KEY" ] || [ -z "$TCB_ENV_ID" ]; then
-          echo "⚠️⚠️⚠️ 警告：GitHub Secrets未正确传递！"
-          echo "请按照以下步骤重新配置："
-          echo "1. 访问: https://github.com/Hua-bing-666/yunyou-nanjiang/settings/secrets/actions"
-          echo "2. 删除现有的 TCB_SECRET_ID, TCB_SECRET_KEY, TCB_ENV_ID"
-          echo "3. 重新添加以下Secrets（注意名称完全匹配）："
-          echo "   - TCB_SECRET_ID: [请在GitHub Secrets页面查看正确值]"
-          echo "   - TCB_SECRET_KEY: [请在GitHub Secrets页面查看正确值]"
-          echo "   - TCB_ENV_ID: [请在GitHub Secrets页面查看正确值]"
-          echo "4. 确保没有多余的空格"
+          echo "❌❌❌ GitHub Secrets未正确传递！请按照以下步骤操作："
           echo ""
-          echo "🔧 临时解决方案：使用Webify自动部署（推荐）"
-          echo "   - 在CloudBase控制台使用'静态网站托管'的'一键部署'功能"
-          echo "   - 或使用GitHub Pages作为备选方案"
+          echo "📝 建议改用Webify一键部署（最简单）："
+          echo "1. 登录腾讯云控制台：https://console.cloud.tencent.com/tcb"
+          echo "2. 进入您的环境（yunyou-nanjiang-d2fyrj8i047aa004）"
+          echo "3. 点击'静态网站托管' → '一键部署'"
+          echo "4. 选择'手动上传' → 上传my-travel/dist目录的内容"
           echo ""
-          echo "⚠️ 继续执行部署步骤，可能会在CloudBase登录时失败..."
+          echo "📝 或者手动在本地部署："
+          echo "1. cd my-travel"
+          echo "2. npm run build"
+          echo "3. tcb login"
+          echo "4. tcb hosting deploy ./dist -e yunyou-nanjiang-d2fyrj8i047aa004"
+          echo ""
+          echo "🛑 停止GitHub Actions自动部署..."
+          echo "✅ 前端构建已完成，项目代码正常，只需部署即可"
+          exit 0
         else
           echo "✅ GitHub Secrets检测通过"
+          echo "🔐 使用API Key登录CloudBase..."
+          echo "TCB_ENV_ID: $TCB_ENV_ID"
+          
+          # 使用API Key登录
+          echo "正在登录CloudBase..."
+          tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
+          
+          echo "📤 部署前端到CloudBase静态托管..."
+          cd my-travel
+          tcb hosting deploy ./dist -e "$TCB_ENV_ID"
+          
+          echo "🎉 前端部署成功！"
+          echo "🌐 访问地址: https://$TCB_ENV_ID.tcloudbaseapp.com"
+          echo "💡 提示：也可在CloudBase控制台查看详细访问地址"
         fi
-        echo "🔐 使用API Key登录CloudBase..."
-        echo "TCB_ENV_ID: $TCB_ENV_ID"
-        
-        # 使用API Key登录
-        tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
-        
-        echo "📤 部署前端到CloudBase静态托管..."
-        cd my-travel
-        tcb hosting deploy ./dist -e "$TCB_ENV_ID"
-        
-        echo "🎉 前端部署成功！"
-        echo "🌐 访问地址: https://$TCB_ENV_ID.tcloudbaseapp.com"
-        echo "💡 提示：也可在CloudBase控制台查看详细访问地址"
         
     - name: PR validation only
       if: github.event_name == 'pull_request'
