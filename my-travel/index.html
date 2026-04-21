@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  html, body {
+    background-color: #f8f5f0;
+    overflow-x: hidden;
+  }
+  /* 主容器：默认全宽，但在大屏幕上限制最大宽度并居中 */
+  #app {
+    width: 100%;
+    max-width: 1200px;    /* 电脑上内容最大宽度1200px，更舒展 */
+    margin: 0 auto;        /* 水平居中 */
+    background-color: #f8f5f0;
+    min-height: 100vh;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+  }
+  /* 手机端：去掉最大宽度限制，全屏显示，无阴影 */
+  @media (max-width: 768px) {
+    #app {
+      max-width: 100%;
+      box-shadow: none;
+      margin: 0;
+    }
+  }
+</style>
+<script src="https://webapi.amap.com/maps?v=2.0&key=7947b386470790d200cedfe782e3066b"></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
