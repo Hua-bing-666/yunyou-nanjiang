@@ -3,6 +3,7 @@ import App from './App.vue'
 import Vant from 'vant'
 import 'vant/lib/index.css'
 import './assets/theme.css'
+import './assets/theme-enhanced.css'
 
 const app = createApp(App)
 app.use(Vant)

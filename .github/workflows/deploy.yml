@@ -1,4 +1,4 @@
-name: Deploy to Tencent Cloud Webify
+name: Deploy Frontend to Tencent Cloud CloudBase
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - main  # PR时运行测试，不部署
 
 jobs:
-  test-and-verify:
+  test-and-deploy:
     runs-on: ubuntu-latest
     
     steps:
@@ -25,57 +25,42 @@ jobs:
     - name: Install frontend dependencies
       run: cd my-travel && npm ci
 
-    - name: Install backend dependencies
-      run: cd backend && npm ci
-
     - name: Build frontend
       run: cd my-travel && npm run build
-      
-    - name: Verify backend can start
-      run: |
-        cd backend
-        # 检查package.json中的脚本
-        echo "验证后端配置..."
-        if [ -f "package.json" ]; then
-          echo "✅ package.json存在"
-          # 检查是否有start脚本
-          if grep -q '"start"' package.json; then
-            echo "✅ 找到start脚本"
-          else
-            echo "⚠️  package.json中没有找到start脚本"
-          fi
-        else
-          echo "❌ package.json不存在"
-          exit 1
-        fi
 
-    - name: Check webify.config.json
-      run: |
-        echo "验证Webify配置文件..."
-        if [ -f "webify.config.json" ]; then
-          echo "✅ webify.config.json存在"
-          # 简单验证JSON格式
-          if python3 -m json.tool webify.config.json > /dev/null 2>&1; then
-            echo "✅ webify.config.json格式正确"
-          else
-            echo "❌ webify.config.json格式错误"
-            exit 1
-          fi
-        else
-          echo "❌ webify.config.json不存在"
-          exit 1
-        fi
+    - name: Install CloudBase CLI
+      run: npm install -g @cloudbase/cli
 
-    - name: Webify deployment triggered
+    - name: Deploy to CloudBase Hosting (Main Branch)
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      env:
+        TCB_SECRET_ID: ${{ secrets.TCB_SECRET_ID }}
+        TCB_SECRET_KEY: ${{ secrets.TCB_SECRET_KEY }}
+        TCB_ENV_ID: ${{ secrets.TCB_ENV_ID }}
       run: |
-        echo "🚀 代码已推送到main分支，Webify将自动检测并部署"
+        echo "🚀 开始部署前端到CloudBase静态托管..."
         echo "📋 部署信息："
         echo "   仓库: ${{ github.repository }}"
         echo "   分支: ${{ github.ref }}"
         echo "   提交: ${{ github.sha }}"
-        echo "👨‍💻 请访问腾讯云Webify控制台查看部署进度"
-        echo "⏱️  预计部署时间：5-10分钟"
+        
+        if [ -z "$TCB_SECRET_ID" ] || [ -z "$TCB_SECRET_KEY" ] || [ -z "$TCB_ENV_ID" ]; then
+          echo "❌ 缺少CloudBase配置，请在GitHub Secrets中设置："
+          echo "   TCB_SECRET_ID, TCB_SECRET_KEY, TCB_ENV_ID"
+          echo "📖 请参考部署指南完成配置"
+          exit 1
+        fi
+        
+        echo "✅ CloudBase配置检测通过"
+        echo "🔐 登录CloudBase..."
+        tcb login --apiKeyId $TCB_SECRET_ID --apiKey $TCB_SECRET_KEY
+        
+        echo "📤 部署前端到CloudBase静态托管..."
+        cd my-travel
+        tcb hosting deploy ./dist -e $TCB_ENV_ID
+        
+        echo "🎉 前端部署成功！"
+        echo "🌐 请稍后在CloudBase控制台查看访问地址"
         
     - name: PR validation only
       if: github.event_name == 'pull_request'
@@ -83,29 +68,30 @@ jobs:
         echo "🔍 PR验证通过，可以合并到main分支"
         echo "📊 验证结果："
         echo "   ✅ 前端依赖安装成功"
-        echo "   ✅ 后端依赖安装成功"
         echo "   ✅ 前端构建成功"
-        echo "   ✅ 后端配置验证通过"
-        echo "   ✅ Webify配置文件验证通过"
-        echo "📌 合并后Webify将自动部署"
+        echo "📌 合并后将自动部署到CloudBase"
 
-  # 可选：添加部署后健康检查（需要Webify API）
-  health-check:
-    needs: test-and-verify
+  # 部署状态提醒
+  deployment-status:
+    needs: test-and-deploy
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     steps:
-    - name: Wait for Webify deployment
+    - name: Wait for deployment propagation
       run: |
-        echo "⏳ 等待Webify部署完成..."
-        echo "ℹ️  Webify部署通常需要5-10分钟"
-        echo "🔄 请在10分钟后访问网站进行验证"
+        echo "⏳ 等待CloudBase部署完成..."
+        echo "ℹ️  CloudBase部署通常需要1-3分钟完成CDN分发"
+        echo "🔄 请在3分钟后访问网站进行验证"
         
-    - name: Deployment status reminder
+    - name: Deployment completion reminder
       run: |
-        echo "📋 部署状态检查提醒："
-        echo "1. 登录腾讯云控制台：https://console.cloud.tencent.com/webify"
-        echo "2. 查看应用 'yunyou-nanjiang' 的部署状态"
+        echo "📋 部署完成后续步骤："
+        echo "1. 登录腾讯云控制台：https://console.cloud.tencent.com/tcb"
+        echo "2. 进入您的环境，查看'静态网站托管'"
         echo "3. 获取访问地址并测试功能"
         echo "4. 如有问题，查看部署日志"
+        echo ""
+        echo "⚠️ 注意：后端需要单独运行"
+        echo "   比赛演示时请同时启动后端服务器："
+        echo "   cd backend && npm start"

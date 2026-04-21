@@ -1,0 +1,649 @@
+/* 南疆旅游AI助手 - 增强主题系统 */
+/* 基于原theme.css扩展，添加现代设计元素 */
+
+:root {
+  /* ====== 保持原有变量 ====== */
+  --primary-color: #F5A623;
+  --primary-light: #FFD699;
+  --primary-dark: #D4881E;
+  
+  --secondary-color: #8B4513;
+  --secondary-light: #B87333;
+  --secondary-dark: #5C3410;
+  
+  --accent-color: #4169E1;
+  --accent-light: #7B9FFF;
+  --accent-dark: #2A4FC2;
+  
+  /* 背景色 */
+  --bg-primary: #f8f5f0;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f0ebe5;
+  --bg-overlay: rgba(255, 255, 255, 0.85);
+  
+  /* 文本色 */
+  --text-primary: #2c2418;
+  --text-secondary: #5a4a3a;
+  --text-tertiary: #999;
+  --text-inverse: #ffffff;
+  
+  /* 边框和阴影 */
+  --border-color: #e0d6cc;
+  --border-light: rgba(0, 0, 0, 0.08);
+  --border-dark: rgba(0, 0, 0, 0.12);
+  
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.15);
+  
+  /* 动画时间 */
+  --transition-fast: 150ms;
+  --transition-normal: 250ms;
+  --transition-slow: 400ms;
+  
+  /* 圆角 */
+  --radius-sm: 8px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-full: 9999px;
+  
+  /* 骨架屏颜色 */
+  --skeleton-bg: linear-gradient(
+    90deg,
+    rgba(0, 0, 0, 0.04) 25%,
+    rgba(0, 0, 0, 0.08) 50%,
+    rgba(0, 0, 0, 0.04) 75%
+  );
+  --skeleton-size: 200px;
+
+  /* ====== 新增增强变量 ====== */
+  
+  /* 主色系扩展 */
+  --primary-gradient: linear-gradient(135deg, #F5A623 0%, #FF8A00 100%);
+  --primary-shadow: 0 4px 20px rgba(245, 166, 35, 0.3);
+  
+  /* 辅助色系 */
+  --success-color: #4CAF50;
+  --warning-color: #FF9800;
+  --error-color: #F44336;
+  --info-color: #2196F3;
+  
+  /* 中性色扩展 */
+  --gray-50: #fafafa;
+  --gray-100: #f5f5f5;
+  --gray-200: #eeeeee;
+  --gray-300: #e0e0e0;
+  --gray-400: #bdbdbd;
+  --gray-500: #9e9e9e;
+  --gray-600: #757575;
+  --gray-700: #616161;
+  --gray-800: #424242;
+  --gray-900: #212121;
+  
+  /* 响应式断点系统 */
+  --breakpoint-xs: 0;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-xxl: 1400px;
+}
+
+/* ====== 深色主题增强 ====== */
+[data-theme="dark"] {
+  /* 保持原有深色变量 */
+  --bg-primary: #1a1a1a;
+  --bg-secondary: #2d2d2d;
+  --bg-tertiary: #3a3a3a;
+  --bg-overlay: rgba(45, 45, 45, 0.85);
+  
+  --text-primary: #f0f0f0;
+  --text-secondary: #cccccc;
+  --text-tertiary: #888;
+  --text-inverse: #2c2418;
+  
+  --border-color: #444;
+  --border-light: rgba(255, 255, 255, 0.08);
+  --border-dark: rgba(255, 255, 255, 0.12);
+  
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.35);
+  
+  --skeleton-bg: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+
+  /* 新增深色主题变量 */
+  --primary-gradient: linear-gradient(135deg, #FFB74D 0%, #FF9800 100%);
+  --primary-shadow: 0 4px 20px rgba(255, 183, 77, 0.4);
+}
+
+/* ====== 现代玻璃态效果 ====== */
+.glassmorphism {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(255, 255, 255, 0.1) 100%
+  );
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .glassmorphism {
+  background: linear-gradient(
+    135deg,
+    rgba(45, 45, 45, 0.25) 0%,
+    rgba(45, 45, 45, 0.1) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ====== 增强卡片系统 ====== */
+.card-elevated {
+  background: var(--bg-secondary);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal) ease;
+  border: 1px solid var(--border-light);
+}
+
+.card-elevated:hover {
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-4px);
+}
+
+.card-elevated:active {
+  transform: translateY(-2px);
+  transition-duration: var(--transition-fast);
+}
+
+.card-outlined {
+  background: transparent;
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  border: 2px solid var(--primary-color);
+  transition: all var(--transition-normal) ease;
+}
+
+.card-outlined:hover {
+  background: rgba(245, 166, 35, 0.05);
+  transform: translateY(-2px);
+}
+
+/* ====== 增强按钮系统 ====== */
+.btn-primary-gradient {
+  background: var(--primary-gradient);
+  color: white;
+  border: none;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 500;
+  box-shadow: var(--primary-shadow);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-primary-gradient:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(245, 166, 35, 0.4);
+}
+
+.btn-primary-gradient:active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+}
+
+.btn-outline-modern {
+  background: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  height: 44px;
+  padding: 0 20px;
+  border-radius: var(--radius-full);
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-outline-modern:hover {
+  background: rgba(245, 166, 35, 0.1);
+  transform: translateY(-2px);
+}
+
+/* ====== 地图标记动画 ====== */
+@keyframes map-marker-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.map-marker-animated {
+  animation: map-marker-pulse 2s ease-in-out infinite;
+}
+
+/* ====== 路线绘制动画 ====== */
+@keyframes draw-path {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.route-path-animated {
+  stroke-dasharray: 1000;
+  stroke-dashoffset: 1000;
+  animation: draw-path 3s ease-in-out forwards;
+}
+
+/* ====== 页面过渡动画 ====== */
+.page-transition-enter-active,
+.page-transition-leave-active {
+  transition: all 0.3s ease;
+}
+
+.page-transition-enter-from,
+.page-transition-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* ====== 渐进式骨架屏 ====== */
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-progressive {
+  position: relative;
+  overflow: hidden;
+  background: var(--skeleton-bg);
+  background-size: var(--skeleton-size) 100%;
+}
+
+.skeleton-progressive::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+  transform: translateX(-100%);
+}
+
+/* ====== 南疆特色图案增强 ====== */
+.xinjiang-pattern-enhanced {
+  position: relative;
+  overflow: hidden;
+}
+
+.xinjiang-pattern-enhanced::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    /* 石榴花图案 */
+    radial-gradient(circle at 10% 20%, var(--primary-light) 1px, transparent 1px),
+    radial-gradient(circle at 90% 80%, var(--accent-light) 1px, transparent 1px),
+    /* 丝绸纹理 */
+    linear-gradient(45deg, transparent 49%, rgba(245, 166, 35, 0.1) 50%, transparent 51%),
+    linear-gradient(-45deg, transparent 49%, rgba(245, 166, 35, 0.1) 50%, transparent 51%);
+  background-size: 60px 60px, 60px 60px, 40px 40px, 40px 40px;
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ====== 文化元素装饰 ====== */
+.cultural-decoration {
+  position: relative;
+}
+
+.cultural-decoration::after {
+  content: '✦';
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  color: var(--primary-color);
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+/* ====== 主题图标 ====== */
+.theme-icon-ruby {
+  color: #E91E63;
+}
+
+.theme-icon-turquoise {
+  color: #00BCD4;
+}
+
+.theme-icon-saffron {
+  color: #F5A623;
+}
+
+/* ====== 响应式网格系统 ====== */
+.responsive-grid {
+  display: grid;
+  gap: 16px;
+}
+
+@media (min-width: var(--breakpoint-md)) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: var(--breakpoint-lg)) {
+  .responsive-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: var(--breakpoint-xl)) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+}
+
+/* ====== 桌面端优化 ====== */
+@media (min-width: 992px) {
+  .desktop-optimized {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  
+  .desktop-sidebar-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 32px;
+  }
+  
+  .desktop-card-wide {
+    grid-column: span 2;
+  }
+}
+
+/* ====== 可访问性优化 ====== */
+.focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-color: #D4881E;
+    --text-primary: #000000;
+    --bg-secondary: #ffffff;
+  }
+}
+
+/* 减少动画 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 屏幕阅读器专用 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ====== 性能优化 ====== */
+/* 渐进式图片加载 */
+.image-progressive {
+  background: var(--skeleton-bg);
+  background-size: var(--skeleton-size) 100%;
+}
+
+.image-progressive.loaded {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* 懒加载占位符 */
+.lazy-placeholder {
+  aspect-ratio: 16/9;
+  background: linear-gradient(110deg, #ececec 8%, #f5f5f5 18%, #ececec 33%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  to { background-position-x: -200%; }
+}
+
+/* ====== 保持原有性能优化类 ====== */
+.performance-optimized {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000;
+}
+
+.contain-animations {
+  contain: layout style paint;
+}
+
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* ====== 保持原有半透明玻璃效果 ====== */
+.glass-effect {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="dark"] .glass-effect {
+  background: linear-gradient(
+    135deg,
+    rgba(45, 45, 45, 0.9) 0%,
+    rgba(45, 45, 45, 0.7) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* ====== 保持原有骨架屏动画 ====== */
+@keyframes skeleton-wave {
+  0% {
+    background-position: -200px 0;
+  }
+  100% {
+    background-position: calc(200px + 100%) 0;
+  }
+}
+
+.skeleton-wave {
+  background: var(--skeleton-bg);
+  background-size: var(--skeleton-size) 100%;
+  animation: skeleton-wave 1.6s ease-in-out infinite;
+}
+
+/* ====== 保持原有微交互动画 ====== */
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.6);
+  opacity: 0;
+  border-radius: 100%;
+  transform: scale(1, 1) translate(-50%, -50%);
+  transform-origin: 50% 50%;
+}
+
+.ripple-effect:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
+.pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* ====== 保持原有轻量滚动差工具类 ====== */
+.parallax-slow {
+  transition: transform 0.1s ease-out;
+}
+
+.parallax-medium {
+  transition: transform 0.05s ease-out;
+}
+
+.parallax-fast {
+  transition: transform 0.02s ease-out;
+}
+
+/* ====== 保持原有主题切换过渡 ====== */
+.theme-transition * {
+  transition: background-color var(--transition-normal) ease,
+              color var(--transition-normal) ease,
+              border-color var(--transition-normal) ease,
+              box-shadow var(--transition-normal) ease;
+}
+
+/* ====== 保持原有南疆特色图案 ====== */
+.xinjiang-pattern {
+  position: relative;
+}
+
+.xinjiang-pattern::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    radial-gradient(circle at 20% 30%, var(--primary-light) 2px, transparent 2px),
+    radial-gradient(circle at 80% 70%, var(--accent-light) 2px, transparent 2px);
+  background-size: 40px 40px;
+  opacity: 0.1;
+  pointer-events: none;
+}
+
+/* ====== 保持原有响应式断点 ====== */
+@media (max-width: 768px) {
+  :root {
+    --radius-lg: 20px;
+    --radius-xl: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --radius-md: 14px;
+    --radius-lg: 18px;
+    --radius-xl: 24px;
+  }
+}
