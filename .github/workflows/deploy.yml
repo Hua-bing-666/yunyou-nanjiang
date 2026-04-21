@@ -54,18 +54,38 @@ jobs:
         echo "TCB_ENV_ID完整值: ${TCB_ENV_ID}"
         echo "===================="
         
-        # 临时测试：先尝试登录，即使环境变量为空
-        echo "⚠️ 临时调整：即使环境变量为空也继续执行..."
-        echo "✅ 继续执行部署步骤..."
-        echo "🔐 尝试登录CloudBase..."
-        tcb login --apiKeyId $TCB_SECRET_ID --apiKey $TCB_SECRET_KEY
+        # 检查环境变量是否为空
+        if [ -z "$TCB_SECRET_ID" ] || [ -z "$TCB_SECRET_KEY" ] || [ -z "$TCB_ENV_ID" ]; then
+          echo "❌❌❌ 严重错误：GitHub Secrets未正确传递！"
+          echo "请按照以下步骤重新配置："
+          echo "1. 访问: https://github.com/Hua-bing-666/yunyou-nanjiang/settings/secrets/actions"
+          echo "2. 删除现有的 TCB_SECRET_ID, TCB_SECRET_KEY, TCB_ENV_ID"
+          echo "3. 重新添加以下Secrets（注意名称完全匹配）："
+          echo "   - TCB_SECRET_ID: AKID4y35zjR0Ol01pSt89RYSAfzGNHxSnwtf"
+          echo "   - TCB_SECRET_KEY: gAza1EKD1e3GFC7uY9e2HOKlz8A0gDYh"
+          echo "   - TCB_ENV_ID: yunyou-nanjiang-d2fyrj8i047aa004"
+          echo "4. 确保没有多余的空格"
+          echo ""
+          echo "🔧 临时解决方案：使用Webify自动部署（推荐）"
+          echo "   - 在CloudBase控制台使用'静态网站托管'的'一键部署'功能"
+          echo "   - 或使用GitHub Pages作为备选方案"
+          exit 1
+        fi
+        
+        echo "✅ GitHub Secrets检测通过"
+        echo "🔐 使用API Key登录CloudBase..."
+        echo "TCB_ENV_ID: $TCB_ENV_ID"
+        
+        # 使用API Key登录
+        tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY" --noBrowser
         
         echo "📤 部署前端到CloudBase静态托管..."
         cd my-travel
-        tcb hosting deploy ./dist -e $TCB_ENV_ID
+        tcb hosting deploy ./dist -e "$TCB_ENV_ID"
         
         echo "🎉 前端部署成功！"
-        echo "🌐 请稍后在CloudBase控制台查看访问地址"
+        echo "🌐 访问地址: https://$TCB_ENV_ID.tcloudbaseapp.com"
+        echo "💡 提示：也可在CloudBase控制台查看详细访问地址"
         
     - name: PR validation only
       if: github.event_name == 'pull_request'
