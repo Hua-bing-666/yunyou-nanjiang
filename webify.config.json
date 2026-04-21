@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "build": {
+    "frontend": {
+      "path": "my-travel",
+      "buildCommand": "npm run build",
+      "outputPath": "dist",
+      "env": {
+        "VITE_API_URL": "https://${WEBIFY_DOMAIN}/api"
+      }
+    },
+    "backend": {
+      "path": "backend",
+      "buildCommand": "npm install",
+      "startCommand": "npm start",
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "3000",
+        "CORS_ORIGIN": "https://${WEBIFY_DOMAIN}"
+      }
+    }
+  },
+  "routes": [
+    {
+      "source": "/api",
+      "target": "backend",
+      "stripPrefix": false
+    },
+    {
+      "source": "/",
+      "target": "frontend",
+      "stripPrefix": false
+    }
+  ]
+}
