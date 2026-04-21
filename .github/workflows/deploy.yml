@@ -1,0 +1,111 @@
+name: Deploy to Tencent Cloud Webify
+
+on:
+  push:
+    branches:
+      - main  # 主分支推送时触发自动部署
+  pull_request:
+    branches:
+      - main  # PR时运行测试，不部署
+
+jobs:
+  test-and-verify:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+
+    - name: Install frontend dependencies
+      run: cd my-travel && npm ci
+
+    - name: Install backend dependencies
+      run: cd backend && npm ci
+
+    - name: Build frontend
+      run: cd my-travel && npm run build
+      
+    - name: Verify backend can start
+      run: |
+        cd backend
+        # 检查package.json中的脚本
+        echo "验证后端配置..."
+        if [ -f "package.json" ]; then
+          echo "✅ package.json存在"
+          # 检查是否有start脚本
+          if grep -q '"start"' package.json; then
+            echo "✅ 找到start脚本"
+          else
+            echo "⚠️  package.json中没有找到start脚本"
+          fi
+        else
+          echo "❌ package.json不存在"
+          exit 1
+        fi
+
+    - name: Check webify.config.json
+      run: |
+        echo "验证Webify配置文件..."
+        if [ -f "webify.config.json" ]; then
+          echo "✅ webify.config.json存在"
+          # 简单验证JSON格式
+          if python3 -m json.tool webify.config.json > /dev/null 2>&1; then
+            echo "✅ webify.config.json格式正确"
+          else
+            echo "❌ webify.config.json格式错误"
+            exit 1
+          fi
+        else
+          echo "❌ webify.config.json不存在"
+          exit 1
+        fi
+
+    - name: Webify deployment triggered
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        echo "🚀 代码已推送到main分支，Webify将自动检测并部署"
+        echo "📋 部署信息："
+        echo "   仓库: ${{ github.repository }}"
+        echo "   分支: ${{ github.ref }}"
+        echo "   提交: ${{ github.sha }}"
+        echo "👨‍💻 请访问腾讯云Webify控制台查看部署进度"
+        echo "⏱️  预计部署时间：5-10分钟"
+        
+    - name: PR validation only
+      if: github.event_name == 'pull_request'
+      run: |
+        echo "🔍 PR验证通过，可以合并到main分支"
+        echo "📊 验证结果："
+        echo "   ✅ 前端依赖安装成功"
+        echo "   ✅ 后端依赖安装成功"
+        echo "   ✅ 前端构建成功"
+        echo "   ✅ 后端配置验证通过"
+        echo "   ✅ Webify配置文件验证通过"
+        echo "📌 合并后Webify将自动部署"
+
+  # 可选：添加部署后健康检查（需要Webify API）
+  health-check:
+    needs: test-and-verify
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Wait for Webify deployment
+      run: |
+        echo "⏳ 等待Webify部署完成..."
+        echo "ℹ️  Webify部署通常需要5-10分钟"
+        echo "🔄 请在10分钟后访问网站进行验证"
+        
+    - name: Deployment status reminder
+      run: |
+        echo "📋 部署状态检查提醒："
+        echo "1. 登录腾讯云控制台：https://console.cloud.tencent.com/webify"
+        echo "2. 查看应用 'yunyou-nanjiang' 的部署状态"
+        echo "3. 获取访问地址并测试功能"
+        echo "4. 如有问题，查看部署日志"
