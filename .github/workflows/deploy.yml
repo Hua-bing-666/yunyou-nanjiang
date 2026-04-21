@@ -78,7 +78,7 @@ jobs:
         echo "TCB_ENV_ID: $TCB_ENV_ID"
         
         # 使用API Key登录
-        tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY" --noBrowser
+        tcb login --apiKeyId "$TCB_SECRET_ID" --apiKey "$TCB_SECRET_KEY"
         
         echo "📤 部署前端到CloudBase静态托管..."
         cd my-travel
