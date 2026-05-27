@@ -103,8 +103,20 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { showToast } from 'vant'
 
-// API配置
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+// ============================================
+// 前端演示模式（当前版本：纯前端展示版）
+// ============================================
+// 说明：当前版本为前端展示版，AI助手使用本地模拟回复（getFallbackResponse），
+// 不依赖真实后端服务。用户输入后直接调用本地数据匹配，无需请求 /api/chat。
+//
+// 后续如需接入真实后端，恢复方法：
+// 1. 取消下方 API_BASE_URL 的注释
+// 2. 恢复 sendMessageToAI() 中的 fetch 请求逻辑
+// 3. 部署后端服务并配置 VITE_API_URL 环境变量
+// ============================================
+
+// (备用) 如需连接后端，取消下面这行注释并配置环境变量
+// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
 
 // ---------- 主题切换功能 ----------
 const theme = ref(localStorage.getItem('ai-assistant-theme') || 'light')
@@ -256,52 +268,12 @@ const sendPreset = (question) => {
   sendMessage()
 }
 
-  // 调用后端AI服务
+  // 前端演示模式：直接调用本地模拟回复，不请求后端
+  // （如需连接真实后端，恢复上面注释的 API_BASE_URL 并改用 fetch 请求 /api/chat）
   const sendMessageToAI = async (message) => {
-    const startTime = Date.now();
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          sessionId: sessionId.value
-        })
-      });
-
-      const endTime = Date.now();
-      const responseTime = endTime - startTime;
-      
-      // 记录响应时间用于调试
-      console.log(`AI响应时间: ${responseTime}ms`);
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || `请求失败: ${response.status}`);
-      }
-      
-      if (data.success && data.data) {
-        // 保存会话ID到本地存储
-        if (data.data.sessionId) {
-          sessionId.value = data.data.sessionId;
-          localStorage.setItem('ai_session_id', sessionId.value);
-        }
-        return data.data.reply;
-      } else {
-        throw new Error(data.error || 'AI回复生成失败');
-      }
-    } catch (error) {
-      console.error('AI服务调用失败:', error);
-      showToast({
-        message: error.message || 'AI服务暂时不可用，请稍后再试',
-        position: 'top',
-      });
-      // 回退到模拟回复
-      return getFallbackResponse(message);
-    }
+    // 模拟网络延迟，让骨架屏有展示效果
+    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 600));
+    return getFallbackResponse(message);
   }
 
 // 回退回复（当后端服务不可用时）
