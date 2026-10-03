@@ -26,6 +26,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: yunyou-nanjiang-${{ github.sha }}
+          include-hidden-files: true
           path: |
             my-travel/dist
             my-travel/server

@@ -44,7 +44,7 @@
 | 干净安装 | 在无私有环境文件的新检出执行 npm ci、格式、测试、构建及浏览器验收 |
 | 改名启动 | 新外层目录保留 my-travel；脚本依据自身位置解析路径，检查开发／生产启动与健康接口 |
 
-单元测试中的 HTTP 返回、地图 SDK 夹具和模拟浏览器接口只证明代码行为，不能充当提供商或实地核验。干净检出、改名与远程 CI 最终结果在交付记录中补充。
+单元测试中的 HTTP 返回、地图 SDK 夹具和模拟浏览器接口只证明代码行为，不能充当提供商或实地核验。干净检出、改名与远程 CI 最终结果如下。
 
 ## 真实服务与助手评估
 
@@ -67,3 +67,13 @@
 ## 交付记录
 
 实施分支：`codex/execute-plan-20261003`；原规划分支保留。代码、文档、锁文件与评估记录同步原仓库；本地目录最终为桌面的“云游南疆”。不创建同名新仓库，不强推，不将“同步 GitHub”写成“上线成功”。
+
+- 应用提交 `a9cbbc3` 已推送；[PR #1](https://github.com/Hua-bing-666/yunyou-nanjiang/pull/1)为草稿，等待代码与业务审核后合并 main。
+- [GitHub Linux CI](https://github.com/Hua-bing-666/yunyou-nanjiang/actions/runs/37120755644)通过：干净安装、格式、审计、79 项单元与 51 项浏览器验收。
+- 本地无 `.env`／私有配置的新检出执行 `npm ci`、格式、审计与完整 `check`，79／51 项均通过，0 项已知依赖漏洞。
+- 完整项目迁移为 `C:\Users\Lenovo\Desktop\云游南疆`，Git 状态干净、对象连通性通过、关联 worktree 路径已修复，私有配置保留且未推送。旧目录只剩的空壳归档到工具临时目录，桌面不再保留 MY-FIRST。
+- 从桌面父目录调用新路径的 `scripts/dev.mjs` 与 `scripts/start-production.mjs` 均成功；网页／健康／详情深链接 200，生产私有环境路径 404。检查结束后停止这些测试服务。
+- 源码和待提交文件与本地 Key 值比对无匹配；删除未使用的旧 `.env.development`，只保留占位配置示例。
+- 手机 360／390／430px 四页共 12 次宽度检查通过，桌面首页／助手与手机详情／路线截图已目视复核。截图、浏览器 HTML 报告留在本地 `my-travel/artifacts/` 与 `playwright-report/`，没有混入发布代码。
+
+归档说明位于 `docs/archive/`；个人 Word 脚本在 `C:\Users\Lenovo\Desktop\个人工具\build_chinese_answer_docs.py`。以后请用新的中文目录作为开发工作区。
