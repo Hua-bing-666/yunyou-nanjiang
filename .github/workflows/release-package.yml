@@ -1,0 +1,40 @@
+name: Build reviewable release package
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: my-travel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: my-travel/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+        env:
+          VITE_AMAP_KEY: ${{ vars.VITE_AMAP_KEY }}
+          VITE_AMAP_SERVICE_HOST: ${{ vars.VITE_AMAP_SERVICE_HOST }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yunyou-nanjiang-${{ github.sha }}
+          include-hidden-files: true
+          path: |
+            my-travel/dist
+            my-travel/server
+            my-travel/src/data
+            my-travel/src/data.js
+            my-travel/package.json
+            my-travel/package-lock.json
+            my-travel/.env.example
+            scripts/start-production.mjs
+            docs/deployment.md
+          retention-days: 14
