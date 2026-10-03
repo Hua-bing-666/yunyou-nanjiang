@@ -38,7 +38,7 @@ test('builds a route path through all waypoints in order', () => {
 })
 
 test('keeps route 1 ids, spot names, and description in the same order', () => {
-  const route = recommendedRoutes.find(item => item.id === 1)
+  const route = recommendedRoutes.find((item) => item.id === 1)
 
   assert.deepEqual(route.spotIds, [2, 1, 4, 3])
   assert.deepEqual(route.spotNames, ['克孜尔千佛洞', '喀什古城', '石头城', '和田团城'])
@@ -48,18 +48,16 @@ test('keeps route 1 ids, spot names, and description in the same order', () => {
 test('route geometry keeps every route spot coordinate in order', () => {
   for (const route of recommendedRoutes) {
     const routePath = buildRoutePath(
-      route.spotIds.map(id => spots.find(spot => spot.id === id)),
+      route.spotIds.map((id) => spots.find((spot) => spot.id === id)),
       route.routeGeometry,
     )
 
     let searchFrom = 0
     for (const spotId of route.spotIds) {
-      const spot = spots.find(item => item.id === spotId)
-      const coordIndex = routePath.findIndex((point, index) => (
-        index >= searchFrom
-        && point[0] === spot.lng
-        && point[1] === spot.lat
-      ))
+      const spot = spots.find((item) => item.id === spotId)
+      const coordIndex = routePath.findIndex(
+        (point, index) => index >= searchFrom && point[0] === spot.lng && point[1] === spot.lat,
+      )
 
       assert.notEqual(coordIndex, -1, `${route.name} should include ${spot.name}`)
       searchFrom = coordIndex + 1
@@ -98,10 +96,13 @@ test('uses sequence-only visible route marker labels to avoid map label overlap'
 })
 
 test('chooses alternate route label positions when nearby labels would overlap', () => {
-  const layouts = buildRouteLabelLayouts([
-    { x: 100, y: 100, width: 88, height: 26 },
-    { x: 118, y: 104, width: 88, height: 26 },
-  ], { markerSize: 34 })
+  const layouts = buildRouteLabelLayouts(
+    [
+      { x: 100, y: 100, width: 88, height: 26 },
+      { x: 118, y: 104, width: 88, height: 26 },
+    ],
+    { markerSize: 34 },
+  )
 
   assert.equal(layouts[0].placement, 'right-top')
   assert.notEqual(layouts[1].placement, 'right-top')
@@ -109,14 +110,17 @@ test('chooses alternate route label positions when nearby labels would overlap',
 })
 
 test('keeps dense route label rectangles from overlapping after fallback offsets', () => {
-  const layouts = buildRouteLabelLayouts([
-    { x: 180, y: 140, width: 96, height: 28 },
-    { x: 184, y: 144, width: 96, height: 28 },
-    { x: 188, y: 148, width: 96, height: 28 },
-    { x: 192, y: 152, width: 96, height: 28 },
-    { x: 196, y: 156, width: 96, height: 28 },
-    { x: 200, y: 160, width: 96, height: 28 },
-  ], { markerSize: 34 })
+  const layouts = buildRouteLabelLayouts(
+    [
+      { x: 180, y: 140, width: 96, height: 28 },
+      { x: 184, y: 144, width: 96, height: 28 },
+      { x: 188, y: 148, width: 96, height: 28 },
+      { x: 192, y: 152, width: 96, height: 28 },
+      { x: 196, y: 156, width: 96, height: 28 },
+      { x: 200, y: 160, width: 96, height: 28 },
+    ],
+    { markerSize: 34 },
+  )
 
   for (let i = 0; i < layouts.length; i += 1) {
     for (let j = i + 1; j < layouts.length; j += 1) {
@@ -126,9 +130,9 @@ test('keeps dense route label rectangles from overlapping after fallback offsets
 })
 
 test('draws route label connector lines from marker anchor to label edge', () => {
-  const layout = buildRouteLabelLayouts([
-    { x: 100, y: 100, width: 80, height: 24 },
-  ], { markerSize: 34 })[0]
+  const layout = buildRouteLabelLayouts([{ x: 100, y: 100, width: 80, height: 24 }], {
+    markerSize: 34,
+  })[0]
   const line = getRouteLabelConnectorLine(layout)
 
   assert.deepEqual(line.from, { x: 100, y: 100 })
@@ -138,11 +142,14 @@ test('draws route label connector lines from marker anchor to label edge', () =>
 })
 
 test('can lay out regular map spot labels near markers without overlap', () => {
-  const layouts = buildRouteLabelLayouts([
-    { x: 80, y: 120, width: 92, height: 26 },
-    { x: 95, y: 126, width: 92, height: 26 },
-    { x: 250, y: 160, width: 104, height: 26 },
-  ], { markerSize: 32 })
+  const layouts = buildRouteLabelLayouts(
+    [
+      { x: 80, y: 120, width: 92, height: 26 },
+      { x: 95, y: 126, width: 92, height: 26 },
+      { x: 250, y: 160, width: 104, height: 26 },
+    ],
+    { markerSize: 32 },
+  )
 
   assert.equal(layouts.length, 3)
   for (let i = 0; i < layouts.length; i += 1) {
@@ -165,19 +172,28 @@ test('shortens map label text at medium zoom and keeps full text at high zoom', 
 })
 
 test('hides normal labels at low zoom and bounds visible labels near anchors', () => {
-  const layouts = buildRouteLabelLayouts([
-    { x: 120, y: 120, width: 100, height: 28 },
-    { x: 124, y: 124, width: 100, height: 28 },
-  ], { markerSize: 32, zoom: 6.5, hideWhenNoSpace: true, maxOffset: 48 })
+  const layouts = buildRouteLabelLayouts(
+    [
+      { x: 120, y: 120, width: 100, height: 28 },
+      { x: 124, y: 124, width: 100, height: 28 },
+    ],
+    { markerSize: 32, zoom: 6.5, hideWhenNoSpace: true, maxOffset: 48 },
+  )
 
-  assert.deepEqual(layouts.map(layout => layout.visible), [false, false])
+  assert.deepEqual(
+    layouts.map((layout) => layout.visible),
+    [false, false],
+  )
 
-  const visibleLayouts = buildRouteLabelLayouts([
-    { x: 120, y: 120, width: 100, height: 28 },
-    { x: 124, y: 124, width: 100, height: 28 },
-  ], { markerSize: 32, zoom: 8.5, hideWhenNoSpace: true, maxOffset: 48 })
+  const visibleLayouts = buildRouteLabelLayouts(
+    [
+      { x: 120, y: 120, width: 100, height: 28 },
+      { x: 124, y: 124, width: 100, height: 28 },
+    ],
+    { markerSize: 32, zoom: 8.5, hideWhenNoSpace: true, maxOffset: 48 },
+  )
 
-  for (const layout of visibleLayouts.filter(item => item.visible)) {
+  for (const layout of visibleLayouts.filter((item) => item.visible)) {
     const dx = Math.max(layout.rect.left - layout.anchor.x, layout.anchor.x - layout.rect.right, 0)
     const dy = Math.max(layout.rect.top - layout.anchor.y, layout.anchor.y - layout.rect.bottom, 0)
     assert.ok(Math.max(dx, dy) <= 48)
@@ -200,23 +216,32 @@ test('keeps route marker spots in waypoint order', () => {
     { id: 1, name: 'A', lng: 1, lat: 1 },
   ]
 
-  assert.deepEqual(getRouteMarkerSpots(allSpots, routeWaypoints).map(spot => spot.id), [3, 1])
+  assert.deepEqual(
+    getRouteMarkerSpots(allSpots, routeWaypoints).map((spot) => spot.id),
+    [3, 1],
+  )
 })
 
 test('does not initialize home map from the route-close watcher during route rendering', () => {
-  assert.equal(shouldInitializeHomeMapAfterRoutesClose({
-    isRenderingRoute: true,
-    showMap: false,
-    showStats: false,
-    currentDetailId: null,
-  }), false)
+  assert.equal(
+    shouldInitializeHomeMapAfterRoutesClose({
+      isRenderingRoute: true,
+      showMap: false,
+      showStats: false,
+      currentDetailId: null,
+    }),
+    false,
+  )
 })
 
 test('initializes home map when routes close without selecting a route', () => {
-  assert.equal(shouldInitializeHomeMapAfterRoutesClose({
-    isRenderingRoute: false,
-    showMap: false,
-    showStats: false,
-    currentDetailId: null,
-  }), true)
+  assert.equal(
+    shouldInitializeHomeMapAfterRoutesClose({
+      isRenderingRoute: false,
+      showMap: false,
+      showStats: false,
+      currentDetailId: null,
+    }),
+    true,
+  )
 })

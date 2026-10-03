@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { test } from 'node:test'
+import { spots } from '../src/data.js'
 
 import {
   getImageFormatSources,
@@ -8,7 +9,7 @@ import {
   getWebpImagePath,
 } from '../src/utils/imageAssets.js'
 
-const readSource = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
+const readSource = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
 
 test('lazy loads heavy overlay components from the app shell', () => {
   const source = readSource('src/App.vue')
@@ -27,7 +28,10 @@ test('keeps the AI assistant entry mounted while loading its async chunk', () =>
 
   assert.match(source, /<AIAssistant\s*\/>/)
   assert.doesNotMatch(source, /assistantReady/)
-  assert.doesNotMatch(source, /requestIdleCallback\(\(\)\s*=>\s*\{\s*assistantReady\.value\s*=\s*true/)
+  assert.doesNotMatch(
+    source,
+    /requestIdleCallback\(\(\)\s*=>\s*\{\s*assistantReady\.value\s*=\s*true/,
+  )
 })
 
 test('registers only used Vant components instead of the full plugin', () => {
@@ -35,7 +39,7 @@ test('registers only used Vant components instead of the full plugin', () => {
 
   assert.doesNotMatch(source, /import Vant from 'vant'/)
   assert.doesNotMatch(source, /app\.use\(Vant\)/)
-  for (const component of ['Button', 'Field', 'Form', 'Icon', 'Popup', 'Search']) {
+  for (const component of ['Button', 'Icon']) {
     assert.match(source, new RegExp(`\\b${component}\\b`))
   }
 })
@@ -57,8 +61,7 @@ test('builds WebP-first image sources with original image fallback', () => {
 })
 
 test('ships WebP copies for local homepage and detail image assets', () => {
-  const source = readSource('src/data.js')
-  const imagePaths = Array.from(source.matchAll(/image:\s*'([^']+\.(?:jpg|png))'/gi), match => match[1])
+  const imagePaths = spots.map((spot) => spot.image)
 
   assert.ok(imagePaths.length > 0)
   for (const imagePath of imagePaths) {

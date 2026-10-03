@@ -1,119 +1,165 @@
 <template>
-  <div class="routes-page">
-    <div class="header">
-      <van-icon name="arrow-left" size="20" @click="$emit('close')" />
-      <h2>南疆经典路线</h2>
-      <div style="width: 20px;"></div>
-    </div>
-    
-    <div class="route-list">
-      <div 
-        class="route-card" 
-        v-for="route in routes" 
-        :key="route.id"
-        @click="selectRoute(route)"
-      >
-        <div class="route-name">{{ route.name }}</div>
-        <div class="route-desc">{{ route.desc }}</div>
-        <div class="route-spots">
-          <span v-for="(spotName, idx) in route.spotNames" :key="idx">{{ spotName }}</span>
-        </div>
-        <div class="route-footer">
-          <span>🚩 {{ route.days }}天</span>
-          <span>⭐ 推荐指数 {{ route.stars }}</span>
-        </div>
+  <section class="routes-page">
+    <button class="back-button" type="button" @click="$emit('close')">← 返回景点导览</button>
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">把目的地串成一段旅程</p>
+        <h1>{{ savedOnly ? '我的行程' : '南疆主题路线' }}</h1>
       </div>
+      <button type="button" @click="toggleSaved">
+        {{ savedOnly ? '浏览全部路线' : '查看已保存行程' }}
+      </button>
     </div>
-  </div>
+    <p class="content-notice">
+      以下是原项目路线的整理草稿。每日安排、点位及交通仍待复核，请勿直接作为出行依据。
+    </p>
+    <p v-if="savedOnly && !visibleRoutes.length" class="empty-state" role="status">
+      还没有保存行程。先浏览主题路线，再选择“保存行程”。
+    </p>
+    <div class="route-list">
+      <article
+        v-for="item in visibleRoutes"
+        :key="item.id"
+        class="route-card"
+        :class="{ selected: selectedId === item.id }"
+      >
+        <button
+          class="route-select"
+          type="button"
+          :aria-expanded="selectedId === item.id"
+          @click="select(item.id)"
+        >
+          <span class="eyebrow"
+            >{{ item.days }} 个草稿日程 ·
+            {{ item.status === 'draft' ? '待实地复核' : '已核验' }}</span
+          >
+          <h2>{{ item.name }}</h2>
+          <p>{{ item.desc }}</p>
+          <span>{{ selectedId === item.id ? '收起日程 ↑' : '查看与保存日程 ↓' }}</span>
+        </button>
+        <div v-if="selectedId === item.id" class="route-detail">
+          <label :for="`date-${item.id}`">出发日期（可选）</label
+          ><input :id="`date-${item.id}`" v-model="startDate" type="date" />
+          <ol class="day-list">
+            <li v-for="day in item.schedule" :key="day.day">
+              <span class="day-number">第 {{ day.day }} 天</span>
+              <h3>{{ day.title }}</h3>
+              <p>{{ day.note }}</p>
+            </li>
+          </ol>
+          <p>交通与开放时间暂未核验，未给出未经验证的车程和预算。</p>
+          <div class="route-actions">
+            <button class="primary-button" type="button" @click="save(item)">保存行程</button
+            ><button type="button" @click="share(item)">复制分享链接</button
+            ><button type="button" @click="download(item)">下载文字行程</button
+            ><button type="button" @click="showMap(item)">查看路线示意</button
+            ><button v-if="isSaved(item.id)" type="button" @click="remove(item.id)">
+              移除保存
+            </button>
+          </div>
+          <p role="status">{{ feedback }}</p>
+        </div>
+      </article>
+    </div>
+    <p class="muted">
+      行程仅保存在当前设备；清除浏览器数据会移除保存记录。下载的文字行程可离线阅读。分享链接只含路线与日期。
+    </p>
+  </section>
 </template>
-
 <script setup>
-import { ref } from 'vue'
+import { computed, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { spots } from '../data.js'
 import { recommendedRoutes } from '../data/routes.js'
-
+import { readStored, writeStored } from '../utils/storage.js'
+import {
+  copyText,
+  downloadText,
+  itineraryText,
+  sharePath,
+  validateSavedRoute,
+  validTravelDate,
+} from '../utils/itinerary.js'
 const emit = defineEmits(['close', 'showRouteOnMap'])
-
-// 路线数据（确保所有 spotIds 都在 spots 中存在）
-const routes = ref(recommendedRoutes)
-
-const selectRoute = (route) => {
-  // 根据 spotIds 获取完整景点对象，过滤掉不存在的
-  const waypoints = route.spotIds
-    .map(id => spots.find(s => s.id === id))
-    .filter(spot => spot && spot.lng && spot.lat)
-  
-  if (waypoints.length > 0) {
-    emit('showRouteOnMap', { ...route, waypoints })
-  } else {
-    alert('该路线暂无有效景点数据')
+const route = useRoute()
+const router = useRouter()
+const saved = ref(
+  readStored(
+    'yunyou_itineraries',
+    [],
+    (value) =>
+      Array.isArray(value) &&
+      value.length <= recommendedRoutes.length &&
+      value.every(validateSavedRoute),
+  ),
+)
+const selectedId = ref(null)
+const startDate = ref('')
+const feedback = ref('')
+const savedOnly = computed(() => route.query.saved === '1')
+const isSaved = (id) => saved.value.some((item) => item.routeId === id)
+const visibleRoutes = computed(() =>
+  recommendedRoutes.filter((item) => !savedOnly.value || isSaved(item.id)),
+)
+watch(
+  () => route.query,
+  (query) => {
+    const id = Number(query.route)
+    selectedId.value = recommendedRoutes.some((item) => item.id === id) ? id : null
+    startDate.value = validTravelDate(query.date)
+      ? query.date
+      : saved.value.find((item) => item.routeId === id)?.startDate || ''
+    feedback.value = ''
+  },
+  { immediate: true },
+)
+function select(id) {
+  selectedId.value = selectedId.value === id ? null : id
+  startDate.value = saved.value.find((item) => item.routeId === id)?.startDate || ''
+  feedback.value = ''
+}
+function toggleSaved() {
+  router.push(savedOnly.value ? '/routes' : '/routes?saved=1')
+}
+function save(item) {
+  if (startDate.value && !validTravelDate(startDate.value)) {
+    feedback.value = '请选择有效出发日期'
+    return
+  }
+  const next = [
+    ...saved.value.filter((value) => value.routeId !== item.id),
+    { routeId: item.id, startDate: startDate.value },
+  ]
+  if (!writeStored('yunyou_itineraries', next)) {
+    feedback.value = '保存失败，当前浏览器无法写入存储'
+    return
+  }
+  saved.value = next
+  feedback.value = '已保存到当前设备，可在“我的行程”查看'
+}
+function remove(id) {
+  const next = saved.value.filter((item) => item.routeId !== id)
+  if (!writeStored('yunyou_itineraries', next)) {
+    feedback.value = '移除失败，当前浏览器无法写入存储'
+    return
+  }
+  saved.value = next
+  feedback.value = '已移除保存'
+}
+async function share(item) {
+  try {
+    await copyText(new URL(sharePath(item.id, startDate.value), window.location.origin).href)
+    feedback.value = '分享链接已复制，仅包含路线与日期'
+  } catch {
+    feedback.value = '复制失败，请下载文字行程或复制浏览器地址'
   }
 }
+function download(item) {
+  downloadText(itineraryText(item, startDate.value), `云游南疆-${item.name}.txt`)
+  feedback.value = '已下载，可离线阅读'
+}
+function showMap(item) {
+  const waypoints = item.spotIds.map((id) => spots.find((spot) => spot.id === id)).filter(Boolean)
+  emit('showRouteOnMap', { ...item, waypoints })
+}
 </script>
-
-<style scoped>
-.routes-page {
-  background: #f8f5f0;
-  min-height: 100vh;
-  padding: 16px;
-}
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 20px;
-}
-.header h2 {
-  font-size: 20px;
-  color: #2c2418;
-  margin: 0;
-}
-.route-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-.route-card {
-  background: white;
-  border-radius: 20px;
-  padding: 18px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-  cursor: pointer;
-  transition: transform 0.2s;
-}
-.route-card:active {
-  transform: scale(0.98);
-}
-.route-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #F5A623;
-  margin-bottom: 8px;
-}
-.route-desc {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 12px;
-}
-.route-spots {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-.route-spots span {
-  background: #f0f0f0;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  color: #5a4a3a;
-}
-.route-footer {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  color: #888;
-  border-top: 1px solid #eee;
-  padding-top: 12px;
-}
-</style>

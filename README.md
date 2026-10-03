@@ -1,78 +1,68 @@
-# 云游南疆 / 南疆旅游AI助手
+# 云游南疆
 
-## 项目简介
+南疆文化导览与主题行程网站，面向文旅推广与创业试点。GitHub 仓库名沿用 **yunyou-nanjiang**，本地外层目录为 **云游南疆**。
 
-"云游南疆"是一个面向南疆旅游导览的交互式Web应用，展示新疆南部地区丰富的文旅资源、民族团结故事和自然风光。项目以"丝路秘境·石榴花开"为主题，融合景点地图、路线推荐、数据看板、AI智能问答等功能，提供沉浸式的南疆旅游体验。
+当前版本：**0.1.0 · 内容整理与功能验证版**。游客可以直接浏览、按地区与主题搜索、收藏景点、记录私人旅行笔记，以及保存、分享、下载主题行程。天气和道路预览通过服务端查询高德；助手使用有来源的站内资料，未配置 AI 时进入明确标注的本地资料模式。
 
-## 当前项目状态
+现有 12 个景点、3 条草稿线路，4 份基础介绍附公开来源。入口坐标、开放安排、图片授权和路线可执行性仍待核验，当前不提供交易或预订。
 
-**版本：前端展示版**（暂不包含真实后端服务）
+## 运行
 
-当前版本为纯前端展示版，所有数据均为本地静态数据，AI助手使用本地模拟回复。项目重点展示前端界面、交互设计、地图展示和数据可视化能力，无需后端服务即可完整运行。
+使用 Node.js 24 LTS，在项目目录执行：
 
-> 后续如需接入后端AI服务，请参考 `AIAssistant.vue` 中的注释说明恢复接口请求。
-
-## 项目目录结构
-
-```
-项目根目录/
-├── my-travel/                    # 前端 Vue 3 项目
-│   ├── src/
-│   │   ├── App.vue               # 主入口组件
-│   │   ├── main.js               # Vue 应用入口
-│   │   ├── data.js               # 景点静态数据
-│   │   ├── assets/               # 样式文件
-│   │   ├── components/           # 通用组件
-│   │   └── views/                # 页面视图
-│   │       ├── Login.vue         # 登录页
-│   │       ├── AIAssistant.vue   # AI助手（模拟回复）
-│   │       ├── Routes.vue        # 路线推荐
-│   │       └── Statistics.vue    # 数据看板
-│   ├── public/                   # 静态资源
-│   ├── package.json
-│   ├── vite.config.js
-│   └── index.html
-├── README.md                     # 项目说明（本文件）
-├── FRONTEND_DEPLOYMENT_GUIDE.md  # 前端部署指南
-├── LOCAL_DEMO_GUIDE.md           # 本地演示指南
-├── UI_PERFORMANCE_OPTIMIZATION.md # 界面与性能优化建议
-├── PROJECT_CLEANUP_LOG.md        # 项目清理记录
-├── webify.config.json            # Webify 前端部署配置
-├── start-frontend-demo.bat       # 前端启动脚本
-└── .gitignore
-```
-
-## 本地运行方式
-
-```bash
-# 1. 进入前端项目目录
+```powershell
 cd my-travel
-
-# 2. 安装依赖（首次运行）
-npm install
-
-# 3. 启动开发服务器
+npm ci
+# 可选：复制 .env.example 为 .env.local，再填写自己的服务配置
 npm run dev
 ```
 
-浏览器访问 `http://localhost:5173` 即可查看。
+访问 http://localhost:5173 。Windows 也可双击 `scripts/start-dev.bat`，会同时启动网页与 API。没有服务 Key 也能浏览并使用本地收藏、笔记、行程及助手。
 
-## 前端部署方式
+```powershell
+npm test                  # 单元与 HTTP 接口验证
+npx playwright install chromium firefox
+npm run check             # 测试、构建、三组浏览器验收
+npm run format:check
+npm audit --audit-level=high
+npm run build
+npm start                 # 同源生产服务，默认 http://127.0.0.1:3001
+```
 
-支持部署到 Webify、Vercel 等静态网站托管平台，详情请参阅 `FRONTEND_DEPLOYMENT_GUIDE.md`。
+## 项目目录
 
-## 本地演示备用方案
+```text
+云游南疆/
+├── README.md
+├── docs/                 规划、核验、开发、部署、验收与历史归档
+├── scripts/              开发／生产启动入口
+├── .github/workflows/    自动验收、手动构建发布包
+├── webify.config.json    历史静态托管配置，注意 API 与深链接限制
+└── my-travel/
+    ├── src/
+    │   ├── App.vue       应用页面与导航入口
+    │   ├── router/       可刷新的网址与前进后退
+    │   ├── data/         景点、来源状态、草稿线路
+    │   ├── components/   天气、资料来源、私人笔记
+    │   ├── composables/  地图生命周期、收藏
+    │   ├── views/        行程、资料分布、助手
+    │   ├── services/     地图 SDK、AI 请求
+    │   ├── utils/        安全存储、行程导出、地图布局等纯函数
+    │   └── assets/       公共样式与地图样式
+    ├── server/           同源 API、可信资料、限流、静态文件服务
+    ├── public/images/    现有图片及 WebP；授权状态待核验
+    ├── test/             单元与 HTTP 测试
+    ├── e2e/              浏览器行为及无障碍验收
+    ├── .env.example      仅含占位配置
+    └── package*.json     依赖与锁文件
+```
 
-演示前请确保：
-- 电脑已安装 Node.js（>= 18.0.0）
-- 手机和电脑连接同一Wi-Fi网络
-- 关闭电脑防火墙或开放 5173 端口
+## 说明与交付
 
-详情请参阅 `LOCAL_DEMO_GUIDE.md`。
+- [项目规划与痛点分析](docs/PROJECT_PLAN.md)：政策、案例、商业验证与六周路线图。
+- [本轮验收报告](docs/ACCEPTANCE.md)：通过项、真实服务验证范围、待人工核验项。
+- [开发配置](docs/development.md)、[部署与回滚](docs/deployment.md)。
+- [资料与授权清单](docs/data-sources.md)、[创业试点执行包](docs/PILOT.md)。
+- [最初审查记录](docs/PROJECT_AUDIT.md)、[文档索引](docs/README.md)。
 
-## 注意事项
-
-- 当前版本为纯前端展示版，AI助手使用本地模拟回复，不请求后端接口
-- 项目使用高德地图 API（Web端），需联网加载地图
-- 天气组件调用高德地图天气API，需联网使用
-- 如需接入后端，请自行部署后端服务并修改前端配置
+原版本已通过 Git 提交保全。过期说明移到 `docs/archive/`；未使用的固定账号登录页、轮播、增强主题和曲线路径模块已移除。个人 Word 脚本移出网站目录，原始图片与私有配置留在本地。

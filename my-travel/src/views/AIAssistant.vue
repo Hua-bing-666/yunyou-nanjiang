@@ -5,7 +5,12 @@
       <div
         v-show="!chatVisible"
         ref="floatBtn"
-        class="float-btn ripple-effect float-animation"
+        class="float-btn ripple-effect"
+        role="button"
+        tabindex="0"
+        aria-label="打开旅游助手"
+        @keydown.enter="toggleChat"
+        @keydown.space.prevent="toggleChat"
         :style="{ left: position.x + 'px', top: position.y + 'px' }"
         @mousedown="startDrag"
         @touchstart="startDrag"
@@ -17,20 +22,38 @@
 
     <!-- 聊天窗口 -->
     <transition name="slide-up">
-      <div v-if="chatVisible" class="chat-window glass-effect">
+      <div
+        v-if="chatVisible"
+        class="chat-window glass-effect"
+        role="dialog"
+        aria-label="南疆旅游助手"
+        @keydown.esc="chatVisible = false"
+      >
         <div class="chat-header">
           <div class="header-left">
             <div class="assistant-avatar">🤖</div>
             <div class="header-text">
               <span class="assistant-name">南疆旅游助手</span>
-              <span class="assistant-status">在线 · 随时为您服务</span>
+              <span class="assistant-status">依据平台资料 · 出行信息请核验</span>
             </div>
           </div>
           <div class="header-actions">
-            <div class="theme-toggle pulse-subtle" @click="toggleTheme" title="切换主题">
-              <van-icon :name="theme === 'dark' ? 'sun-o' : 'moon-o'" size="18" />
-            </div>
-            <van-icon name="cross" size="18" @click="chatVisible = false" class="close-btn" />
+            <button
+              type="button"
+              class="theme-toggle"
+              @click="toggleTheme"
+              aria-label="切换助手主题"
+            >
+              <span aria-hidden="true">{{ theme === 'dark' ? '☀' : '☾' }}</span>
+            </button>
+            <button
+              type="button"
+              @click="chatVisible = false"
+              aria-label="关闭旅游助手"
+              class="close-btn"
+            >
+              ×
+            </button>
           </div>
         </div>
 
@@ -39,14 +62,24 @@
           <div class="message assistant">
             <div class="avatar">🤖</div>
             <div class="bubble">
-              你好！我是南疆旅游助手，可以为你介绍景点、推荐路线、查询门票信息等。请问有什么可以帮你的？
+              你好！我可以帮助你查找有来源的文化资料，说明如何保存行程。实时门票、开放和交通安排请以官方最新信息为准。
             </div>
           </div>
 
           <!-- 历史消息 -->
           <div v-for="(msg, idx) in messages" :key="idx" class="message" :class="msg.role">
             <div class="avatar">{{ msg.role === 'user' ? '👤' : '🤖' }}</div>
-            <div class="bubble">{{ msg.content }}</div>
+            <div class="bubble">
+              <p>{{ msg.content }}</p>
+              <small v-if="msg.notice">{{ msg.notice }}</small>
+              <ul v-if="msg.sources?.length">
+                <li v-for="source in msg.sources" :key="source.url">
+                  <a :href="source.url" target="_blank" rel="noopener noreferrer">{{
+                    source.title
+                  }}</a>
+                </li>
+              </ul>
+            </div>
           </div>
 
           <!-- AI回复骨架屏 -->
@@ -63,35 +96,44 @@
           <div class="preset-questions" v-if="presetList.length">
             <div class="preset-header">
               <span>💡 你可能想问</span>
-              <span class="auto-switch-indicator">{{ currentPresetIndex + 1 }}/{{ presetList.length }}</span>
+              <span class="auto-switch-indicator"
+                >{{ currentPresetIndex + 1 }}/{{ presetList.length }}</span
+              >
             </div>
             <transition name="carousel" mode="out-in">
-              <div class="preset-card ripple-effect" :key="currentPresetIndex" @click="sendPreset(presetList[currentPresetIndex])">
+              <button
+                type="button"
+                class="preset-card ripple-effect"
+                :key="currentPresetIndex"
+                @click="sendPreset(presetList[currentPresetIndex])"
+              >
                 {{ presetList[currentPresetIndex] }}
-              </div>
+              </button>
             </transition>
           </div>
         </div>
 
         <!-- 输入框（紧凑设计） -->
         <div class="chat-footer">
-          <van-field
+          <input
             v-model="inputText"
             placeholder="输入问题..."
-            border
+            aria-label="向旅游助手提问"
+            maxlength="1200"
             :disabled="isTyping"
             @keyup.enter="sendMessage"
             class="input-field"
           />
-          <van-button 
-            type="primary" 
-            size="small" 
-            round 
-            :disabled="!inputText.trim() || isTyping" 
+          <van-button
+            type="primary"
+            size="small"
+            round
+            :disabled="!inputText.trim() || isTyping"
             @click="sendMessage"
             class="send-btn ripple-effect"
+            aria-label="发送问题"
           >
-            <van-icon name="send" size="16" />
+            <span aria-hidden="true">↑</span>
           </van-button>
         </div>
       </div>
@@ -102,17 +144,20 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { showToast } from 'vant'
-import { AI_SERVICE_UNAVAILABLE_MESSAGE, sendChatMessage } from '../services/aiChat.js'
+import { AI_SERVICE_UNAVAILABLE_MESSAGE, requestChat } from '../services/aiChat.js'
+import { readStored, writeStored } from '../utils/storage.js'
 import { shouldOpenChatAfterPointerUp } from '../utils/assistantInteraction.js'
 
 // ---------- 主题切换功能 ----------
-const theme = ref(localStorage.getItem('ai-assistant-theme') || 'light')
+const theme = ref(
+  readStored('ai-assistant-theme', 'light', (value) => ['light', 'dark'].includes(value)),
+)
 
 const toggleTheme = () => {
   const newTheme = theme.value === 'light' ? 'dark' : 'light'
   theme.value = newTheme
-  localStorage.setItem('ai-assistant-theme', newTheme)
-  
+  writeStored('ai-assistant-theme', newTheme)
+
   // 应用主题到整个AI助手容器
   const container = document.querySelector('.ai-assistant')
   if (container) {
@@ -136,10 +181,10 @@ let startTop = 0
 const startDrag = (e) => {
   e.preventDefault()
   e.stopPropagation()
-  
+
   const clientX = e.touches ? e.touches[0].clientX : e.clientX
   const clientY = e.touches ? e.touches[0].clientY : e.clientY
-  
+
   dragging = true
   startMouseX = clientX
   startMouseY = clientY
@@ -148,13 +193,13 @@ const startDrag = (e) => {
   suppressNextClick = false
   startLeft = position.value.x
   startTop = position.value.y
-  
+
   // 拖动时添加视觉反馈
   if (floatBtn.value) {
     floatBtn.value.style.opacity = '0.8'
     floatBtn.value.style.transform = 'scale(0.95)'
   }
-  
+
   window.addEventListener('mousemove', onDrag)
   window.addEventListener('touchmove', onDrag, { passive: false })
   window.addEventListener('mouseup', stopDrag)
@@ -164,26 +209,26 @@ const startDrag = (e) => {
 const onDrag = (e) => {
   if (!dragging) return
   e.preventDefault()
-  
+
   const clientX = e.touches ? e.touches[0].clientX : e.clientX
   const clientY = e.touches ? e.touches[0].clientY : e.clientY
   lastPointerX = clientX
   lastPointerY = clientY
-  
+
   const deltaX = clientX - startMouseX
   const deltaY = clientY - startMouseY
-  
+
   let newLeft = startLeft + deltaX
   let newTop = startTop + deltaY
-  
+
   const btnWidth = floatBtn.value?.offsetWidth || 56
   const btnHeight = floatBtn.value?.offsetHeight || 56
   const maxX = window.innerWidth - btnWidth
   const maxY = window.innerHeight - btnHeight
-  
+
   newLeft = Math.max(0, Math.min(newLeft, maxX))
   newTop = Math.max(0, Math.min(newTop, maxY))
-  
+
   position.value = { x: newLeft, y: newTop }
 }
 
@@ -223,12 +268,12 @@ const messages = ref([])
 const isTyping = ref(false)
 
 const presetList = ref([
-  '喀什古城门票多少？',
-  '白沙湖有什么故事？',
+  '喀什古城有哪些手工艺？',
+  '怎样核对目的地资料？',
   '推荐一条南疆经典路线',
   '托喀依乡有什么特色？',
-  '克孜尔千佛洞开放时间？',
-  '慕士塔格峰怎么去？'
+  '克孜尔石窟有哪些文化价值？',
+  '慕士塔格峰怎么去？',
 ])
 
 const currentPresetIndex = ref(0)
@@ -241,7 +286,7 @@ const toggleChat = (event) => {
     return
   }
   chatVisible.value = !chatVisible.value
-  
+
   if (chatVisible.value) {
     nextTick(() => scrollToBottom())
     startPresetCarousel()
@@ -274,27 +319,42 @@ const sendPreset = (question) => {
   sendMessage()
 }
 
+let chatController
 const sendMessage = async () => {
   const text = inputText.value.trim()
   if (!text || isTyping.value) return
-  
+
   // 添加用户消息
   messages.value.push({ role: 'user', content: text })
   inputText.value = ''
-  
+
   nextTick(() => scrollToBottom())
-  
+
   isTyping.value = true
-  
+
   try {
-    const reply = await sendChatMessage({
+    chatController = new AbortController()
+    const result = await requestChat({
+      signal: AbortSignal.any([chatController.signal, AbortSignal.timeout(30000)]),
       message: text,
       history: messages.value.slice(0, -1),
     })
-    
+
     // 添加AI回复
-    messages.value.push({ role: 'assistant', content: reply })
+    messages.value.push({
+      role: 'assistant',
+      content: result.reply,
+      sources: (result.sources || []).filter(
+        (source) => typeof source.url === 'string' && source.url.startsWith('https://'),
+      ),
+      notice: result.notice,
+    })
+    messages.value = messages.value.slice(-50)
   } catch (error) {
+    messages.value.push({
+      role: 'assistant',
+      content: error?.message || AI_SERVICE_UNAVAILABLE_MESSAGE,
+    })
     showToast({
       message: error?.message || AI_SERVICE_UNAVAILABLE_MESSAGE,
       position: 'top',
@@ -305,23 +365,37 @@ const sendMessage = async () => {
   }
 }
 
-watch(messages, () => {
-  nextTick(() => scrollToBottom())
-}, { deep: true })
+watch(chatVisible, async (visible) => {
+  await nextTick()
+  if (visible) document.querySelector('.input-field')?.focus()
+  else {
+    stopPresetCarousel()
+    floatBtn.value?.focus()
+  }
+})
+
+watch(
+  messages,
+  () => {
+    nextTick(() => scrollToBottom())
+  },
+  { deep: true },
+)
 
 // 生命周期
 onMounted(() => {
   window.addEventListener('resize', handleResize)
-  
+
   const btnWidth = floatBtn.value?.offsetWidth || 56
   const btnHeight = floatBtn.value?.offsetHeight || 56
   position.value = {
     x: window.innerWidth - btnWidth - 20,
-    y: window.innerHeight - btnHeight - 80
+    y: window.innerHeight - btnHeight - 80,
   }
 })
 
 onUnmounted(() => {
+  chatController?.abort()
   stopPresetCarousel()
   window.removeEventListener('resize', handleResize)
   window.removeEventListener('mousemove', onDrag)
@@ -343,7 +417,7 @@ onUnmounted(() => {
   width: 56px;
   height: 56px;
   border-radius: 28px;
-  background: linear-gradient(135deg, var(--primary-color), #FF6B6B);
+  background: linear-gradient(135deg, var(--primary-color), #ff6b6b);
   box-shadow: 0 4px 12px rgba(245, 166, 35, 0.4);
   display: flex;
   align-items: center;
@@ -351,12 +425,14 @@ onUnmounted(() => {
   cursor: pointer;
   user-select: none;
   touch-action: none;
-  transition: opacity 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
   z-index: 3001;
 }
 
-[data-theme="dark"] .float-btn {
-  background: linear-gradient(135deg, var(--primary-color), #8B4513);
+[data-theme='dark'] .float-btn {
+  background: linear-gradient(135deg, var(--primary-color), #8b4513);
   box-shadow: 0 4px 12px rgba(139, 69, 19, 0.4);
 }
 
@@ -379,7 +455,7 @@ onUnmounted(() => {
   border: 1px solid var(--border-light);
 }
 
-[data-theme="dark"] .chat-window {
+[data-theme='dark'] .chat-window {
   background: var(--bg-secondary-dark);
   box-shadow: var(--shadow-xl);
 }
@@ -395,7 +471,7 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
-[data-theme="dark"] .chat-header {
+[data-theme='dark'] .chat-header {
   background: linear-gradient(135deg, var(--primary-dark), var(--secondary-dark));
 }
 
@@ -447,7 +523,9 @@ onUnmounted(() => {
   justify-content: center;
   background: rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.2s;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
 }
 
 .theme-toggle:hover {
@@ -498,32 +576,38 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   font-size: 20px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   flex-shrink: 0;
 }
 
 .message.user .avatar {
-  background: #F5A623;
+  background: #f5a623;
   color: white;
 }
 
 .bubble {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
   max-width: 75%;
   padding: 10px 14px;
   border-radius: 18px;
   font-size: 14px;
   line-height: 1.5;
   word-break: break-word;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .message.assistant .bubble {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
   background: white;
   border-bottom-left-radius: 4px;
 }
 
 .message.user .bubble {
-  background: #F5A623;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  background: #f5a623;
   color: white;
   border-bottom-right-radius: 4px;
 }
@@ -556,11 +640,11 @@ onUnmounted(() => {
   width: 90%;
 }
 
-[data-theme="dark"] .skeleton-bubble {
+[data-theme='dark'] .skeleton-bubble {
   background: var(--bg-secondary-dark);
 }
 
-[data-theme="dark"] .skeleton-line {
+[data-theme='dark'] .skeleton-line {
   background: var(--skeleton-bg);
 }
 
@@ -578,13 +662,25 @@ onUnmounted(() => {
   background: #999;
   animation: typing 1.4s infinite ease-in-out;
 }
-.typing span:nth-child(1) { animation-delay: 0s; }
-.typing span:nth-child(2) { animation-delay: 0.2s; }
-.typing span:nth-child(3) { animation-delay: 0.4s; }
+.typing span:nth-child(1) {
+  animation-delay: 0s;
+}
+.typing span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing span:nth-child(3) {
+  animation-delay: 0.4s;
+}
 
 @keyframes typing {
-  0%, 60%, 100% { transform: translateY(0); }
-  30% { transform: translateY(-6px); }
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-6px);
+  }
 }
 
 /* 预设问题卡片（紧凑设计） */
@@ -593,14 +689,14 @@ onUnmounted(() => {
   background: white;
   border-radius: 16px;
   padding: 10px 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .preset-header {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #888;
+  color: #59534c;
   margin-bottom: 8px;
 }
 
@@ -615,15 +711,15 @@ onUnmounted(() => {
   border: 1px solid #e9ecef;
 }
 .preset-card:hover {
-  background: #F5A62310;
-  border-color: #F5A623;
+  background: #f5a62310;
+  border-color: #f5a623;
 }
 .preset-card:active {
-  background: #F5A62320;
+  background: #f5a62320;
 }
 
 .auto-switch-indicator {
-  color: #F5A623;
+  color: #885018;
   font-weight: 500;
 }
 
@@ -636,7 +732,11 @@ onUnmounted(() => {
   gap: 8px;
   align-items: center;
 }
-.chat-footer :deep(.van-field) {
+.chat-footer .input-field {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid #d5ccbf;
+  color: #352a23;
   background: #f5f7fa;
   border-radius: 24px;
   padding: 6px 12px;
@@ -644,28 +744,35 @@ onUnmounted(() => {
 .chat-footer .van-button {
   height: 36px;
   padding: 0 16px;
-  background: #F5A623;
+  background: #f5a623;
   border: none;
 }
 
 /* 过渡动画 */
-.slide-up-enter-active, .slide-up-leave-active {
+.slide-up-enter-active,
+.slide-up-leave-active {
   transition: all 0.25s ease;
 }
-.slide-up-enter-from, .slide-up-leave-to {
+.slide-up-enter-from,
+.slide-up-leave-to {
   opacity: 0;
   transform: translateY(20px);
 }
 
-.fade-enter-active, .fade-leave-active {
+.fade-enter-active,
+.fade-leave-active {
   transition: opacity 0.2s;
 }
-.fade-enter-from, .fade-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
 }
 
-.carousel-enter-active, .carousel-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
+.carousel-enter-active,
+.carousel-leave-active {
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
 }
 .carousel-enter-from {
   opacity: 0;
@@ -684,5 +791,44 @@ onUnmounted(() => {
     width: calc(100vw - 20px);
     height: 500px;
   }
+}
+</style>
+
+<style scoped>
+.float-btn {
+  border: 0;
+}
+.bubble p {
+  margin-bottom: 8px;
+}
+.bubble small {
+  display: block;
+  color: #5d5348;
+}
+.bubble ul {
+  padding-left: 18px;
+}
+.bubble a {
+  color: #774b18;
+}
+.preset-card {
+  width: 100%;
+  text-align: left;
+}
+.header-actions button {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 4px;
+}
+.chat-window {
+  max-width: calc(100vw - 24px);
+  max-height: calc(100dvh - 24px);
+}
+.bubble {
+  max-width: 85%;
+}
+[data-theme='dark'] .bubble small,
+[data-theme='dark'] .bubble a {
+  color: #ffcf8b;
 }
 </style>

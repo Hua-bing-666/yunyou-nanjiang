@@ -28,4 +28,3 @@ export function getOptimizedImageStyle(imagePath) {
     backgroundImage: `image-set(url("${webp}") type("image/webp"), url("${fallback}") type("${getImageMimeType(fallback)}"))`,
   }
 }
-

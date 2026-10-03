@@ -1,5 +1,8 @@
 export const NANJIANG_CENTER = [80.6, 39.2]
-export const NANJIANG_BOUNDS = [[73.2, 35.5], [88.8, 42.8]]
+export const NANJIANG_BOUNDS = [
+  [73.2, 35.5],
+  [88.8, 42.8],
+]
 export const NANJIANG_ZOOM = 6.6
 export const NANJIANG_MAP_STYLE = 'amap://styles/whitesmoke'
 
@@ -61,10 +64,11 @@ export function getNanjiangMapOptions(overrides = {}) {
 }
 
 export function getNanjiangRegionByValue(value) {
-  return NANJIANG_REGIONS.find(region => region.value === value) || null
+  return NANJIANG_REGIONS.find((region) => region.value === value) || null
 }
 
 export function getSpotRegionValue(spot) {
+  if (spot?.region) return spot.region
   const adcode = String(spot?.adcode || '')
   if (!adcode) return 'all'
 
@@ -80,7 +84,7 @@ export function getSpotRegionValue(spot) {
 export function getNanjiangRegionSpots(allSpots, regionValue) {
   if (!Array.isArray(allSpots)) return []
   if (!regionValue || regionValue === 'all') return allSpots
-  return allSpots.filter(spot => getSpotRegionValue(spot) === regionValue)
+  return allSpots.filter((spot) => getSpotRegionValue(spot) === regionValue)
 }
 
 export function shouldShowHomeSpotLabel({

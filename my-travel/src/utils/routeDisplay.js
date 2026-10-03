@@ -3,7 +3,14 @@ export const ROUTE_LINE_COLOR = '#E53935'
 export const ROUTE_LINE_WIDTH = 7
 export const ROUTE_MARKER_ANCHOR_TRANSFORM = 'translate(-50%, -100%)'
 export const ROUTE_MARKER_NAME_DISPLAY = 'smart'
-export const ROUTE_LABEL_PLACEMENTS = ['right-top', 'left-top', 'right-bottom', 'left-bottom', 'top', 'bottom']
+export const ROUTE_LABEL_PLACEMENTS = [
+  'right-top',
+  'left-top',
+  'right-bottom',
+  'left-bottom',
+  'top',
+  'bottom',
+]
 
 export function getRouteMarkerVisualSize(zoom = 8) {
   if (zoom <= 6) return 28
@@ -47,14 +54,18 @@ export function createRect(left, top, width, height) {
 
 export function doRectsOverlap(a, b, gap = 4) {
   return !(
-    a.right + gap <= b.left
-    || b.right + gap <= a.left
-    || a.bottom + gap <= b.top
-    || b.bottom + gap <= a.top
+    a.right + gap <= b.left ||
+    b.right + gap <= a.left ||
+    a.bottom + gap <= b.top ||
+    b.bottom + gap <= a.top
   )
 }
 
-function getRouteLabelRect(anchor, placement, { width, height, markerSize, gap, fallbackOffset = 0 }) {
+function getRouteLabelRect(
+  anchor,
+  placement,
+  { width, height, markerSize, gap, fallbackOffset = 0 },
+) {
   const sideOffset = markerSize / 2 + gap
   const topOffset = markerSize + gap
   const verticalCenter = anchor.y - markerSize * 0.66
@@ -74,10 +85,12 @@ function getRouteLabelRect(anchor, placement, { width, height, markerSize, gap, 
 
 function isRectWithinBounds(rect, bounds) {
   if (!bounds) return true
-  return rect.left >= bounds.left
-    && rect.top >= bounds.top
-    && rect.right <= bounds.right
-    && rect.bottom <= bounds.bottom
+  return (
+    rect.left >= bounds.left &&
+    rect.top >= bounds.top &&
+    rect.right <= bounds.right &&
+    rect.bottom <= bounds.bottom
+  )
 }
 
 function getAnchorDistanceOutsideRect(anchor, rect) {
@@ -86,17 +99,20 @@ function getAnchorDistanceOutsideRect(anchor, rect) {
   return Math.max(dx, dy)
 }
 
-export function buildRouteLabelLayouts(points, {
-  markerSize = 34,
-  gap = 8,
-  collisionGap = 4,
-  fallbackStep = 16,
-  zoom = 8,
-  maxOffset = Infinity,
-  containerBounds = null,
-  hideWhenNoSpace = false,
-  forceVisible = false,
-} = {}) {
+export function buildRouteLabelLayouts(
+  points,
+  {
+    markerSize = 34,
+    gap = 8,
+    collisionGap = 4,
+    fallbackStep = 16,
+    zoom = 8,
+    maxOffset = Infinity,
+    containerBounds = null,
+    hideWhenNoSpace = false,
+    forceVisible = false,
+  } = {},
+) {
   const placed = []
   const mode = getMapLabelMode(zoom)
 
@@ -122,11 +138,12 @@ export function buildRouteLabelLayouts(points, {
       return hiddenLayout('icon-only')
     }
 
-    const canUseRect = (rect) => (
-      getAnchorDistanceOutsideRect(anchor, rect) <= maxOffset
-      && isRectWithinBounds(rect, containerBounds)
-      && !placed.some(layout => layout.visible !== false && doRectsOverlap(rect, layout.rect, collisionGap))
-    )
+    const canUseRect = (rect) =>
+      getAnchorDistanceOutsideRect(anchor, rect) <= maxOffset &&
+      isRectWithinBounds(rect, containerBounds) &&
+      !placed.some(
+        (layout) => layout.visible !== false && doRectsOverlap(rect, layout.rect, collisionGap),
+      )
 
     for (const placement of ROUTE_LABEL_PLACEMENTS) {
       const rect = getRouteLabelRect(anchor, placement, size)
@@ -189,11 +206,11 @@ export function getRouteLabelConnectorLine(layout) {
 export function buildRoutePath(waypoints, routeGeometry = []) {
   if (Array.isArray(routeGeometry) && routeGeometry.length >= 2) {
     return routeGeometry
-      .filter(point => Array.isArray(point) && point.length >= 2)
-      .map(point => [point[0], point[1]])
+      .filter((point) => Array.isArray(point) && point.length >= 2)
+      .map((point) => [point[0], point[1]])
   }
 
-  return waypoints.map(point => [point.lng, point.lat])
+  return waypoints.map((point) => [point.lng, point.lat])
 }
 
 /**
@@ -205,15 +222,14 @@ export function buildRoutePath(waypoints, routeGeometry = []) {
  * @returns {boolean}
  */
 export function shouldInitializeHomeMapAfterRoutesClose(state) {
-  return !state.isRenderingRoute
-    && !state.showMap
-    && !state.showStats
-    && state.currentDetailId === null
+  return (
+    !state.isRenderingRoute && !state.showMap && !state.showStats && state.currentDetailId === null
+  )
 }
 
 export function getRouteMarkerSpots(allSpots, routeWaypoints) {
-  const spotsById = new Map(allSpots.map(spot => [spot.id, spot]))
+  const spotsById = new Map(allSpots.map((spot) => [spot.id, spot]))
   return routeWaypoints
-    .map(waypoint => spotsById.get(waypoint.id) || waypoint)
-    .filter(spot => spot && typeof spot.lng === 'number' && typeof spot.lat === 'number')
+    .map((waypoint) => spotsById.get(waypoint.id) || waypoint)
+    .filter((spot) => spot && typeof spot.lng === 'number' && typeof spot.lat === 'number')
 }

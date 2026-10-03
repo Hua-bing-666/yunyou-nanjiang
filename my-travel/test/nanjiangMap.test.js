@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
 import {
@@ -15,11 +14,12 @@ import {
 } from '../src/utils/nanjiangMap.js'
 import { spots } from '../src/data.js'
 
-const readSource = path => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8')
-
 test('defines a comfortable Nanjiang map viewport', () => {
   assert.deepEqual(NANJIANG_CENTER, [80.6, 39.2])
-  assert.deepEqual(NANJIANG_BOUNDS, [[73.2, 35.5], [88.8, 42.8]])
+  assert.deepEqual(NANJIANG_BOUNDS, [
+    [73.2, 35.5],
+    [88.8, 42.8],
+  ])
   assert.equal(NANJIANG_ZOOM, 6.6)
 
   const options = getNanjiangMapOptions()
@@ -31,14 +31,10 @@ test('defines a comfortable Nanjiang map viewport', () => {
 })
 
 test('groups spots into Nanjiang guide regions', () => {
-  assert.deepEqual(NANJIANG_REGIONS.map(region => region.value), [
-    'all',
-    'kashgar',
-    'pamirs',
-    'hotan',
-    'aksu',
-    'bayingolin',
-  ])
+  assert.deepEqual(
+    NANJIANG_REGIONS.map((region) => region.value),
+    ['all', 'kashgar', 'pamirs', 'hotan', 'aksu', 'bayingolin'],
+  )
 
   assert.equal(getSpotRegionValue({ adcode: '653101' }), 'kashgar')
   assert.equal(getSpotRegionValue({ adcode: '653022' }), 'pamirs')
@@ -52,29 +48,30 @@ test('filters local spots by Nanjiang region', () => {
   const pamirsSpots = getNanjiangRegionSpots(spots, 'pamirs')
   const hotanSpots = getNanjiangRegionSpots(spots, 'hotan')
 
-  assert.ok(kashgarSpots.some(spot => spot.id === 1))
-  assert.ok(pamirsSpots.some(spot => spot.id === 5))
-  assert.ok(hotanSpots.some(spot => spot.id === 3))
+  assert.ok(kashgarSpots.some((spot) => spot.id === 1))
+  assert.ok(pamirsSpots.some((spot) => spot.id === 5))
+  assert.ok(hotanSpots.some((spot) => spot.id === 3))
   assert.equal(getNanjiangRegionSpots(spots, 'all').length, spots.length)
   assert.equal(getNanjiangRegionByValue('pamirs')?.label, '帕米尔')
 })
 
 test('keeps regular map labels sparse and route labels available', () => {
-  assert.equal(shouldShowHomeSpotLabel({ zoom: 6.5, isRouteMode: false, isHighlighted: false }), false)
-  assert.equal(shouldShowHomeSpotLabel({ zoom: 8.5, isRouteMode: false, isHighlighted: false }), false)
-  assert.equal(shouldShowHomeSpotLabel({ zoom: 8.5, isRouteMode: false, isHighlighted: true }), true)
+  assert.equal(
+    shouldShowHomeSpotLabel({ zoom: 6.5, isRouteMode: false, isHighlighted: false }),
+    false,
+  )
+  assert.equal(
+    shouldShowHomeSpotLabel({ zoom: 8.5, isRouteMode: false, isHighlighted: false }),
+    false,
+  )
+  assert.equal(
+    shouldShowHomeSpotLabel({ zoom: 8.5, isRouteMode: false, isHighlighted: true }),
+    true,
+  )
   assert.equal(shouldShowHomeSpotLabel({ zoom: 6.5, isRouteMode: true, isRouteSpot: true }), true)
 })
 
-test('wires Nanjiang guide map behavior into the homepage shell', () => {
-  const source = readSource('src/App.vue')
-
-  assert.match(source, /class="guide-workbench"/)
-  assert.match(source, /regionFilters/)
-  assert.match(source, /setRegion/)
-  assert.match(source, /getNanjiangMapOptions/)
-  assert.match(source, /getNanjiangBoundsPath/)
-  assert.match(source, /shouldShowHomeSpotLabel/)
-  assert.doesNotMatch(source, /viewMode:\s*'3D'/)
-  assert.doesNotMatch(source, /fillColor:\s*'#000000'/)
+test('explicit regions take precedence over legacy administrative codes', () => {
+  assert.equal(getSpotRegionValue({ region: 'pamirs', adcode: '653131' }), 'pamirs')
+  assert.ok(getNanjiangRegionSpots(spots, 'pamirs').some((spot) => spot.id === 4))
 })

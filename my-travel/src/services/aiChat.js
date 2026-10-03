@@ -1,53 +1,30 @@
-import { spots } from '../data.js'
-import { recommendedRoutes } from '../data/routes.js'
-
 export const AI_SERVICE_UNAVAILABLE_MESSAGE = 'AI 服务暂不可用，请稍后再试'
 
-export function buildNanjiangContext() {
-  const spotLines = spots.map(spot => [
-    `${spot.name}：${spot.shortDesc || spot.description || ''}`,
-    `地址：${spot.address || '暂无'}`,
-    `门票：${spot.ticket || '暂无'}`,
-    `开放时间：${spot.opening || '暂无'}`,
-    `故事：${(spot.story || '').slice(0, 120)}`,
-  ].join('；'))
-
-  const routeLines = recommendedRoutes.map(route => (
-    `${route.name}：${route.spotNames.join(' → ')}；建议 ${route.days} 天；推荐指数 ${route.stars}`
-  ))
-
-  return [
-    '云游南疆平台本地资料如下。',
-    '景点：',
-    ...spotLines,
-    '推荐路线：',
-    ...routeLines,
-  ].join('\n').slice(0, 8500)
-}
-
-export async function sendChatMessage({
-  message,
-  history = [],
-  fetchImpl = globalThis.fetch,
-}) {
+export async function requestChat({ message, history = [], fetchImpl = globalThis.fetch, signal }) {
   const response = await fetchImpl('/api/chat', {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-    },
+    headers: { 'content-type': 'application/json' },
+    signal: signal || AbortSignal.timeout(30000),
     body: JSON.stringify({
       message,
       history: history
-        .filter(item => ['user', 'assistant'].includes(item?.role) && typeof item.content === 'string')
-        .slice(-8),
-      context: buildNanjiangContext(),
+        .filter(
+          (item) => ['user', 'assistant'].includes(item?.role) && typeof item.content === 'string',
+        )
+        .slice(-8)
+        .map((item) => ({ role: item.role, content: item.content.slice(0, 1200) })),
     }),
   })
-
   const payload = await response.json().catch(() => ({}))
-  if (!response.ok || !payload.reply) {
-    throw new Error(AI_SERVICE_UNAVAILABLE_MESSAGE)
-  }
+  if (!response.ok || typeof payload.reply !== 'string' || !payload.reply.trim())
+    throw new Error(
+      response.status === 429
+        ? '请求频繁或今日额度已用完，请稍后再试'
+        : AI_SERVICE_UNAVAILABLE_MESSAGE,
+    )
+  return payload
+}
 
-  return payload.reply
+export async function sendChatMessage(options) {
+  return (await requestChat(options)).reply
 }
