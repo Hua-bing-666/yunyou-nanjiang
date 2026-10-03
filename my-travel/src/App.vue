@@ -10,108 +10,171 @@
             <span>云游南疆</span>
             <span class="logo-subtitle">—— 丝路秘境·石榴花开</span>
           </div>
-          <div style="display: flex; align-items: center; gap: 12px;">
+          <div class="top-bar-user">
             <van-icon name="user-o" size="18" color="#F5A623" />
-            <span style="font-size: 14px; color: #666;">{{ currentUser }}</span>
-            <span style="cursor: pointer; color: #F5A623;" @click="logout">退出</span>
+            <span class="top-bar-username">{{ currentUser }}</span>
+            <button type="button" class="logout-btn" @click="logout">退出</button>
           </div>
         </div>
 
-        <!-- 三图轮播 -->
-        <div class="carousel-container">
-          <div class="carousel-wrapper" ref="carouselRef" @mouseenter="pauseAuto" @mouseleave="startAuto">
-            <div
-              class="carousel-item"
-              v-for="(item, idx) in carouselItems"
-              :key="idx"
-              :class="{ active: idx === currentIndex }"
-              @click="goDetail(item.spotId)"
-            >
-              <div class="carousel-img" :style="{ backgroundImage: 'url(' + item.image + ')' }"></div>
+        <div class="guide-workbench">
+          <!-- 搜索框 -->
+          <div class="search-container guide-search">
+            <van-search
+              v-model="searchKeyword"
+              placeholder="搜索景点、路线..."
+              shape="round"
+              background="transparent"
+              @search="onSearch"
+              @input="onSearchInput"
+            />
+            <div v-if="searchResults.length > 0 && searchKeyword.trim() !== ''" class="search-results">
+              <div
+                v-for="spot in searchResults"
+                :key="spot.id"
+                class="search-result-item"
+                @click="openFullMapForSpot(spot.id)"
+              >
+                <van-icon name="search" size="16" color="#F5A623" />
+                <span>{{ spot.name }}</span>
+                <span class="result-address">{{ spot.address.slice(0, 20) }}</span>
+              </div>
             </div>
           </div>
-          <div class="carousel-arrow left" @click="prev"><van-icon name="arrow-left" size="30" /></div>
-          <div class="carousel-arrow right" @click="next"><van-icon name="arrow" size="30" /></div>
-          <div class="carousel-indicators">
+
+          <!-- 快捷入口 -->
+          <div class="quick-actions">
+            <button type="button" class="quick-action" @click="handleNavClick({ action: 'route' })">
+              <van-icon name="guide-o" size="20" color="#C87423" />
+              <span>路线推荐</span>
+            </button>
+            <button type="button" class="quick-action" @click="handleNavClick({ action: 'stats' })">
+              <van-icon name="chart-trending-o" size="20" color="#C87423" />
+              <span>数据看板</span>
+            </button>
+          </div>
+
+          <!-- 南疆分区 -->
+          <div class="region-bar" aria-label="南疆分区筛选">
+            <button
+              v-for="region in regionFilters"
+              :key="region.value"
+              type="button"
+              class="region-chip"
+              :class="{ active: currentRegion === region.value }"
+              @click="setRegion(region.value)"
+            >{{ region.label }}</button>
+          </div>
+
+          <!-- 类型筛选 -->
+          <div class="filter-bar">
             <span
-              v-for="(item, idx) in banners"
-              :key="idx"
-              class="indicator"
-              :class="{ active: idx === getRealIndex() }"
-              @click="goToSlide(idx)"
-            ></span>
+              v-for="filter in filters"
+              :key="filter.value"
+              class="filter-btn"
+              :class="{ active: currentFilter === filter.value }"
+              @click="setFilter(filter.value)"
+            >{{ filter.label }}</span>
           </div>
-        </div>
 
-        <!-- 搜索框 -->
-        <div class="search-container">
-          <van-search
-            v-model="searchKeyword"
-            placeholder="搜索景点、路线..."
-            shape="round"
-            background="transparent"
-            @search="onSearch"
-            @input="onSearchInput"
-          />
-          <div v-if="searchResults.length > 0 && searchKeyword.trim() !== ''" class="search-results">
-            <div
-              v-for="spot in searchResults"
-              :key="spot.id"
-              class="search-result-item"
-              @click="openFullMapForSpot(spot.id)"
-            >
-              <van-icon name="search" size="16" color="#F5A623" />
-              <span>{{ spot.name }}</span>
-              <span class="result-address">{{ spot.address.slice(0, 20) }}</span>
+          <section class="map-guide-section">
+            <div class="section-title map-title">
+              <span>南疆导览地图</span>
+              <span class="more">{{ currentRegionLabel }} · 点击标记查看详情</span>
             </div>
-          </div>
-        </div>
 
-        <!-- 导航栏（仅保留路线推荐、数据看板） -->
-        <div class="nav-grid nav-grid-two">
-          <div class="nav-item" @click="handleNavClick({ action: 'route' })">
-            <van-icon name="guide-o" size="24" color="#F5A623" />
-            <span>路线推荐</span>
-          </div>
-          <div class="nav-item" @click="handleNavClick({ action: 'stats' })">
-            <van-icon name="chart-trending-o" size="24" color="#F5A623" />
-            <span>数据看板</span>
-          </div>
-        </div>
+            <div v-if="routeMode" class="clear-route-btn" @click="clearRouteMode">
+              <van-icon name="clear" /> 清除路线
+            </div>
 
-        <!-- 筛选栏 -->
-        <div class="filter-bar">
-          <span 
-            v-for="filter in filters" 
-            :key="filter.value"
-            class="filter-btn"
-            :class="{ active: currentFilter === filter.value }"
-            @click="setFilter(filter.value)"
-          >{{ filter.label }}</span>
-        </div>
+            <div v-if="routeMode && routeWaypoints.length" class="route-sequence-strip" aria-label="Route waypoint order">
+              <button
+                v-for="(spot, index) in routeWaypoints"
+                :key="spot.id"
+                class="route-sequence-chip"
+                type="button"
+                :title="spot.name"
+                @click="goDetail(spot.id)"
+              >
+                <span class="route-sequence-index">{{ getRouteMarkerSequenceLabel(index) }}</span>
+                <span class="route-sequence-name">{{ spot.name }}</span>
+              </button>
+            </div>
 
-        <div class="section-title">
-          <span>🗺️ 南疆景点地图</span>
-          <span class="more">点击标记查看详情或大地图</span>
-        </div>
+            <div id="home-map" class="home-map-shell"></div>
+          </section>
 
-        <div v-if="routeMode" class="clear-route-btn" @click="clearRouteMode">
-          <van-icon name="clear" /> 清除路线
-        </div>
+          <section class="recommendation-section">
+            <div class="section-title recommendation-title">
+              <span>推荐景点</span>
+              <span class="more">向左滑动浏览南疆目的地</span>
+            </div>
 
-        <div id="home-map" style="height: 420px; width: 100%; margin: 0 0 20px 0;"></div>
+            <!-- 三图轮播 -->
+            <div class="carousel-container">
+              <div
+                class="carousel-wrapper"
+                ref="carouselRef"
+                @mouseenter="pauseAuto"
+                @mouseleave="startAuto"
+                @touchstart="onTouchStart"
+                @touchmove="onTouchMove"
+                @touchend="onTouchEnd"
+              >
+                <div
+                  class="carousel-item"
+                  v-for="(item, idx) in carouselItems"
+                  :key="idx"
+                  :class="{ active: idx === currentIndex }"
+                  @click="goDetail(item.spotId)"
+                >
+                  <div
+                    class="carousel-img"
+                    :style="getOptimizedImageStyle(item.image)"
+                    role="img"
+                    :aria-label="getCarouselAlt(item.spotId)"
+                  ></div>
+                </div>
+              </div>
+              <div class="carousel-arrow left" @click="prev"><van-icon name="arrow-left" size="30" /></div>
+              <div class="carousel-arrow right" @click="next"><van-icon name="arrow" size="30" /></div>
+              <div class="carousel-indicators">
+                <span
+                  v-for="(item, idx) in banners"
+                  :key="idx"
+                  class="indicator"
+                  :class="{ active: idx === getRealIndex() }"
+                  @click="goToSlide(idx)"
+                ></span>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
 
       <!-- 详情页 -->
       <div v-if="currentDetailId !== null" class="detail-page">
         <div class="detail-header">
           <div class="detail-img-wrapper" @click="previewImage">
-            <img :src="currentDetail.image" :alt="currentDetail.name" class="detail-img" />
+            <picture>
+              <source
+                v-if="currentDetailImageSources.webp !== currentDetailImageSources.fallback"
+                :srcset="currentDetailImageSources.webp"
+                type="image/webp"
+              />
+              <img
+                :src="currentDetailImageSources.fallback"
+                :alt="currentDetail.name"
+                class="detail-img"
+                loading="lazy"
+                decoding="async"
+              />
+            </picture>
           </div>
           <div class="detail-info">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-              <h1 style="margin: 0;">{{ currentDetail.name }}</h1>
-              <div style="display: flex; gap: 12px; align-items: center;">
+            <div class="detail-title-row">
+              <h1>{{ currentDetail.name }}</h1>
+              <div class="detail-actions">
                 <WeatherInfo :adcode="currentDetail.adcode" v-if="currentDetail.adcode" />
                 <div class="favorite-btn" @click="toggleFavorite(currentDetail.id)">
                   <van-icon :name="isFavorite(currentDetail.id) ? 'heart' : 'heart-o'" size="24" :color="isFavorite(currentDetail.id) ? '#F5A623' : '#ccc'" />
@@ -160,13 +223,13 @@
           </div>
 
           <van-button type="primary" block @click="openMapForCurrent">查看地图位置</van-button>
-          <van-button plain block @click="backToList" style="margin-top: 12px;">返回列表</van-button>
+          <van-button plain block class="back-list-btn" @click="backToList">返回列表</van-button>
         </div>
       </div>
 
       <!-- 全屏地图页 -->
       <div v-if="showMap" class="map-page">
-        <div id="fullscreen-map" style="width: 100%; height: 100%;"></div>
+        <div id="fullscreen-map" class="fullscreen-map-canvas"></div>
         <div class="back-btn" @click="closeMapPage">
           <van-icon name="arrow-left" size="20" /> 返回
         </div>
@@ -185,7 +248,7 @@
       <AIAssistant />
 
       <!-- 评论弹窗 -->
-      <van-popup v-model:show="showCommentPopup" position="bottom" round :style="{ height: '40%' }">
+      <van-popup v-model:show="showCommentPopup" position="bottom" round class="comment-popup-modal">
         <div class="comment-popup">
           <div class="popup-header">
             <span>写下你的足迹</span>
@@ -210,14 +273,42 @@
 </template>
 
 <script setup>
-import Routes from './views/Routes.vue'
-import Statistics from './views/Statistics.vue'
-import AIAssistant from './views/AIAssistant.vue'
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, defineAsyncComponent } from 'vue'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { spots } from './data.js'
 import WeatherInfo from './components/WeatherInfo.vue'
 import Login from './views/Login.vue'
+import { useCarousel } from './composables/useCarousel.js'
+import { loadAMap } from './services/amapLoader.js'
+import { getImageFormatSources, getOptimizedImageStyle } from './utils/imageAssets.js'
+import {
+  getNanjiangBoundsPath,
+  getNanjiangMapOptions,
+  getNanjiangRegionByValue,
+  getNanjiangRegionSpots,
+  NANJIANG_BOUNDS,
+  NANJIANG_REGIONS,
+  shouldShowHomeSpotLabel,
+} from './utils/nanjiangMap.js'
+import {
+  buildRouteLabelLayouts,
+  buildRoutePath,
+  getLabelTextForZoom,
+  getMapLabelMode,
+  getRouteLabelConnectorLine,
+  getRouteMarkerAccessibleName,
+  getRouteMarkerSequenceLabel,
+  getRouteMarkerVisualSize,
+  ROUTE_LINE_COLOR,
+  ROUTE_LINE_WIDTH,
+  ROUTE_MARKER_ANCHOR_TRANSFORM,
+  SPOT_MARKER_ANCHOR,
+  shouldInitializeHomeMapAfterRoutesClose,
+} from './utils/routeDisplay.js'
+
+const Routes = defineAsyncComponent(() => import('./views/Routes.vue'))
+const Statistics = defineAsyncComponent(() => import('./views/Statistics.vue'))
+const AIAssistant = defineAsyncComponent(() => import('./views/AIAssistant.vue'))
 
 // ---------- 登录状态 ----------
 const isLoggedIn = ref(false)
@@ -271,6 +362,9 @@ const showStats = ref(false)
 const currentDetailId = ref(null)
 
 const currentDetail = computed(() => spots.find(s => s.id === currentDetailId.value) || {})
+const currentDetailImageSources = computed(() => getImageFormatSources(currentDetail.value.image))
+
+const getCarouselAlt = (spotId) => spots.find(spot => spot.id === spotId)?.name || '南疆景点'
 
 const previewImage = () => {
   if (!currentDetail.value.image) return
@@ -281,97 +375,22 @@ const previewImage = () => {
 
 // ---------- 三图轮播 ----------
 const banners = computed(() => spots.map(spot => ({ image: spot.image, spotId: spot.id })))
-const carouselItems = computed(() => {
-  const len = banners.value.length
-  if (len === 0) return []
-  const prev = banners.value.slice(-2)
-  const next = banners.value.slice(0, 2)
-  return [...prev, ...banners.value, ...next]
-})
-
-const currentIndex = ref(2)
-let autoTimer = null
-let resetTimer = null
-const carouselRef = ref(null)
-
-let touchStartX = 0, touchEndX = 0
-
-const getRealIndex = () => {
-  let idx = currentIndex.value - 2
-  if (idx < 0) idx += banners.value.length
-  return idx % banners.value.length
-}
-
-const updatePosition = (index) => {
-  if (!carouselRef.value) return
-  const containerWidth = carouselRef.value.parentElement?.clientWidth
-  if (!containerWidth || containerWidth === 0) return
-  const itemWidth = containerWidth / 3
-  const offset = (1 - index) * itemWidth
-  carouselRef.value.style.transform = `translateX(${offset}px)`
-  carouselRef.value.style.transition = 'transform 0.3s ease'
-}
-
-const refreshCarouselPosition = () => {
-  nextTick(() => {
-    if (carouselRef.value) {
-      carouselRef.value.style.transition = 'none'
-      updatePosition(currentIndex.value)
-      carouselRef.value.offsetHeight
-      carouselRef.value.style.transition = 'transform 0.3s ease'
-    }
-  })
-}
-
-const startAuto = () => {
-  if (autoTimer) clearInterval(autoTimer)
-  autoTimer = setInterval(() => next(), 3000)
-}
-const pauseAuto = () => {
-  if (autoTimer) {
-    clearInterval(autoTimer)
-    autoTimer = null
-  }
-}
-const resetAutoTimer = () => {
-  pauseAuto()
-  startAuto()
-}
-
-const goToSlide = (realIndex) => {
-  let newIndex = realIndex + 2
-  currentIndex.value = newIndex
-  updatePosition(newIndex)
-  
-  if (resetTimer) clearTimeout(resetTimer)
-  resetTimer = setTimeout(() => {
-    if (currentIndex.value <= 1) {
-      const realLen = banners.value.length
-      currentIndex.value = realLen + currentIndex.value
-      carouselRef.value.style.transition = 'none'
-      updatePosition(currentIndex.value)
-      setTimeout(() => { carouselRef.value.style.transition = 'transform 0.3s ease' }, 20)
-    } else if (currentIndex.value >= banners.value.length + 2) {
-      currentIndex.value = currentIndex.value - banners.value.length
-      carouselRef.value.style.transition = 'none'
-      updatePosition(currentIndex.value)
-      setTimeout(() => { carouselRef.value.style.transition = 'transform 0.3s ease' }, 20)
-    }
-    resetTimer = null
-  }, 300)
-  
-  resetAutoTimer()
-}
-
-const next = () => goToSlide(currentIndex.value + 1 - 2)
-const prev = () => goToSlide(currentIndex.value - 1 - 2)
-
-const onTouchStart = (e) => { touchStartX = e.touches[0].clientX }
-const onTouchMove = (e) => { touchEndX = e.touches[0].clientX }
-const onTouchEnd = () => {
-  if (touchStartX - touchEndX > 50) next()
-  else if (touchEndX - touchStartX > 50) prev()
-}
+const {
+  carouselItems,
+  carouselRef,
+  currentIndex,
+  disposeCarousel,
+  getRealIndex,
+  goToSlide,
+  next,
+  onTouchEnd,
+  onTouchMove,
+  onTouchStart,
+  pauseAuto,
+  prev,
+  refreshCarouselPosition,
+  startAuto,
+} = useCarousel(banners)
 
 // ---------- 导航栏（仅保留两个按钮） ----------
 const handleNavClick = (nav) => {
@@ -466,66 +485,167 @@ const filters = ref([
   { label: '民族团结', value: 'village' }
 ])
 const currentFilter = ref('all')
+const currentRegion = ref('all')
+const regionFilters = computed(() => NANJIANG_REGIONS)
+const currentRegionLabel = computed(() => getNanjiangRegionByValue(currentRegion.value)?.label || '全部')
 let currentMarkers = []
+let homeSpotLabelLayer = null
+let homeSpotLabelUpdateFrame = null
 
 const getMarkerIcon = (isFav) => {
   const iconUrl = isFav ? '/images/pin-favorite.png' : '/images/pin-default.png'
-  // 调试输出图标信息
-  console.log('创建图标:', {
-    类型: isFav ? '收藏' : '普通',
-    图片: iconUrl,
-    尺寸: '32x32',
-    锚点: '调整后(16,28)'
-  })
   return new window.AMap.Icon({
     size: new window.AMap.Size(32, 32),
     image: iconUrl,
     imageSize: new window.AMap.Size(32, 32),
-    // 调整锚点为图标底部中心偏上，确保图钉尖部精确对齐坐标点
-    // 从(16,32)调整为(16,28)，让锚点上移4像素，使图钉尖部更接近图像底部
-    anchor: new window.AMap.Pixel(16, 28)
+    anchor: new window.AMap.Pixel(...SPOT_MARKER_ANCHOR)
   })
+}
+
+const removeHomeSpotLabels = () => {
+  if (homeSpotLabelUpdateFrame) {
+    cancelAnimationFrame(homeSpotLabelUpdateFrame)
+    homeSpotLabelUpdateFrame = null
+  }
+  if (homeSpotLabelLayer) {
+    homeSpotLabelLayer.remove()
+    homeSpotLabelLayer = null
+  }
+}
+
+const getSpotLabelPixel = (spot) => {
+  const pixel = homeMapInstance.lngLatToContainer([spot.lng, spot.lat])
+  return {
+    x: typeof pixel.getX === 'function' ? pixel.getX() : pixel.x,
+    y: typeof pixel.getY === 'function' ? pixel.getY() : pixel.y,
+  }
+}
+
+const updateHomeSpotLabels = () => {
+  if (!homeMapInstance || !homeSpotLabelLayer || routeMode.value) return
+
+  const container = document.getElementById('home-map')
+  if (!container) return
+
+  const zoom = typeof homeMapInstance.getZoom === 'function' ? homeMapInstance.getZoom() : 8
+  const labelMode = getMapLabelMode(zoom)
+  const labelElements = Array.from(homeSpotLabelLayer.querySelectorAll('.home-spot-label'))
+  const markerSize = 32
+  homeSpotLabelLayer.dataset.labelMode = labelMode
+
+  const labelItems = []
+  labelElements.forEach((label) => {
+    const spot = spots.find(item => item.id === Number(label.dataset.spotId))
+    const pixel = spot ? getSpotLabelPixel(spot) : { x: 0, y: 0 }
+    const isHighlighted = label.dataset.highlighted === 'true'
+    label.textContent = getLabelTextForZoom(spot?.name, zoom)
+    label.dataset.labelMode = labelMode
+    if (!shouldShowHomeSpotLabel({ zoom, isRouteMode: false, isHighlighted })) {
+      label.dataset.visible = 'false'
+      label.style.display = 'none'
+      return
+    }
+
+    label.style.display = ''
+    labelItems.push({
+      label,
+      point: {
+        x: pixel.x,
+        y: pixel.y,
+        width: Math.ceil(label.offsetWidth || label.scrollWidth || 96),
+        height: Math.ceil(label.offsetHeight || label.scrollHeight || 28),
+        forceVisible: isHighlighted,
+      },
+    })
+  })
+
+  const layouts = buildRouteLabelLayouts(labelItems.map(item => item.point), {
+    markerSize,
+    gap: labelMode === 'short' ? 6 : 8,
+    collisionGap: labelMode === 'short' ? 6 : 4,
+    zoom,
+    maxOffset: 48,
+    hideWhenNoSpace: true,
+    containerBounds: {
+      left: 8,
+      top: 8,
+      right: container.clientWidth - 8,
+      bottom: container.clientHeight - 8,
+    },
+  })
+
+  layouts.forEach((layout, index) => {
+    const label = labelItems[index].label
+    if (!layout.visible) {
+      label.style.display = 'none'
+      label.dataset.visible = 'false'
+      return
+    }
+    label.dataset.visible = 'true'
+    label.style.display = ''
+    label.style.left = `${layout.rect.left}px`
+    label.style.top = `${layout.rect.top}px`
+    label.dataset.placement = layout.placement
+  })
+}
+
+const scheduleHomeSpotLabelUpdate = () => {
+  if (homeSpotLabelUpdateFrame) return
+  homeSpotLabelUpdateFrame = requestAnimationFrame(() => {
+    homeSpotLabelUpdateFrame = null
+    updateHomeSpotLabels()
+  })
+}
+
+const renderHomeSpotLabels = (spotsToShow) => {
+  removeHomeSpotLabels()
+  if (!homeMapInstance || routeMode.value) return
+
+  const container = document.getElementById('home-map')
+  if (!container) return
+
+  container.style.position = 'relative'
+  homeSpotLabelLayer = document.createElement('div')
+  homeSpotLabelLayer.className = 'home-spot-label-layer'
+  spotsToShow
+    .filter(spot => spot.lng && spot.lat)
+    .forEach((spot) => {
+      const isHighlighted = currentRegion.value !== 'all' || currentFilter.value !== 'all'
+      const label = document.createElement('button')
+      label.type = 'button'
+      label.className = 'home-spot-label'
+      label.dataset.spotId = String(spot.id)
+      label.dataset.highlighted = String(isHighlighted)
+      label.title = spot.name
+      label.setAttribute('aria-label', spot.name)
+      label.textContent = spot.name
+      label.addEventListener('click', () => goDetail(spot.id))
+      homeSpotLabelLayer.appendChild(label)
+    })
+
+  container.appendChild(homeSpotLabelLayer)
+  updateHomeSpotLabels()
 }
 
 const refreshHomeMarkers = (forceRouteOnly = false) => {
   if (!homeMapInstance) return
   currentMarkers.forEach(m => m.setMap(null))
   currentMarkers = []
-  let spotsToShow = spots
-  if (routeMode.value || forceRouteOnly) {
-    const routeIds = routeWaypoints.value.map(w => w.id)
-    spotsToShow = spots.filter(spot => routeIds.includes(spot.id))
-  } else {
-    spotsToShow = spots.filter(spot => {
-      if (currentFilter.value !== 'all' && spot.type !== currentFilter.value) return false
-      return true
-    })
-  }
+  removeHomeSpotLabels()
+  if (routeMode.value || forceRouteOnly) return
+
+  let spotsToShow = getNanjiangRegionSpots(spots, currentRegion.value)
+  spotsToShow = spotsToShow.filter(spot => {
+    if (currentFilter.value !== 'all' && spot.type !== currentFilter.value) return false
+    return true
+  })
   spotsToShow.forEach((spot, idx) => {
     if (spot.lng && spot.lat) {
-      const offsetX = 0, offsetY = -35  // 调整标签位置，避免遮挡地图文字
-      const labelContent = spot.name.length > 10 ? spot.name.slice(0, 9) + '…' : spot.name
       const marker = new window.AMap.Marker({
         position: [spot.lng, spot.lat],
         title: spot.name,
         icon: getMarkerIcon(isFavorite(spot.id)),
         zIndex: 100 + idx,  // 添加zIndex管理，避免图标重叠
-        label: {
-          content: labelContent,
-          offset: new window.AMap.Pixel(offsetX, offsetY),
-          direction: 'top',
-          style: {
-            backgroundColor: 'rgba(255,255,255,0.9)',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            border: '1px solid #F5A623',
-            padding: '2px 8px',
-            borderRadius: '16px',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-            whiteSpace: 'nowrap',
-            color: '#2c2418'
-          }
-        }
       })
       marker.setMap(homeMapInstance)
       marker.on('click', () => {
@@ -566,12 +686,40 @@ const refreshHomeMarkers = (forceRouteOnly = false) => {
       currentMarkers.push(marker)
     }
   })
+  renderHomeSpotLabels(spotsToShow)
 }
 
 const setFilter = (type) => {
   if (routeMode.value) clearRouteMode()
   currentFilter.value = type
   refreshHomeMarkers()
+}
+
+const focusHomeMapOnCurrentRegion = () => {
+  if (!homeMapInstance) return
+  const region = getNanjiangRegionByValue(currentRegion.value)
+  if (!region) return
+  if (currentRegion.value === 'all') {
+    homeMapInstance.setCenter?.(region.center)
+    homeMapInstance.setZoom?.(region.zoom)
+    return
+  }
+
+  const regionSpots = getNanjiangRegionSpots(spots, currentRegion.value).filter(spot => spot.lng && spot.lat)
+  if (regionSpots.length > 1 && typeof homeMapInstance.setFitView === 'function') {
+    const markers = regionSpots.map(spot => new window.AMap.Marker({ position: [spot.lng, spot.lat] }))
+    homeMapInstance.setFitView(markers, false, [70, 70, 70, 70])
+    return
+  }
+  homeMapInstance.setCenter?.(region.center)
+  homeMapInstance.setZoom?.(region.zoom)
+}
+
+const setRegion = (value) => {
+  if (routeMode.value) clearRouteMode()
+  currentRegion.value = value
+  refreshHomeMarkers()
+  focusHomeMapOnCurrentRegion()
 }
 
 // ---------- 收藏 ----------
@@ -599,11 +747,28 @@ const toggleFavorite = (id) => {
 // ---------- 地图实例 ----------
 let homeMapInstance = null
 const destroyHomeMap = () => {
+  removeRouteOverlay()
+  removeHomeSpotLabels()
   if (homeMapInstance) {
     homeMapInstance.destroy()
     homeMapInstance = null
   }
   currentMarkers = []
+}
+
+const getNanjiangBounds = () => new window.AMap.Bounds(NANJIANG_BOUNDS[0], NANJIANG_BOUNDS[1])
+
+const addNanjiangBoundaryLayer = (map) => {
+  const boundary = new window.AMap.Polygon({
+    path: getNanjiangBoundsPath(),
+    fillColor: '#FFF4DF',
+    fillOpacity: 0.08,
+    strokeColor: '#D8A44A',
+    strokeOpacity: 0.85,
+    strokeWeight: 2,
+    zIndex: 6,
+  })
+  map.add(boundary)
 }
 
 const initHomeMap = () => {
@@ -612,31 +777,18 @@ const initHomeMap = () => {
   if (!container) return false
   destroyHomeMap()
 
-  const map = new window.AMap.Map('home-map', {
-    zoom: 6.5,
-    center: [84.5, 39.0],
-    viewMode: '3D',
-    showIndoorMap: false,
-    zooms: [6, 10]
-  })
+  const map = new window.AMap.Map('home-map', getNanjiangMapOptions())
   homeMapInstance = map
   window.__homeMap = map
 
-  const bounds = new window.AMap.Bounds([73, 35], [96, 43])
+  const bounds = getNanjiangBounds()
   map.setLimitBounds(bounds)
   map.setBounds(bounds)
+  addNanjiangBoundaryLayer(map)
 
-  const worldBounds = [[-180, -90], [180, -90], [180, 90], [-180, 90]]
-  const southHole = [[73, 35], [73, 43], [96, 43], [96, 35]].reverse()
-  const mask = new window.AMap.Polygon({
-    path: [worldBounds, southHole],
-    fillColor: '#000000',
-    fillOpacity: 0.35,
-    strokeColor: 'none',
-    zIndex: 5
-  })
-  map.add(mask)
-
+  map.on('zoomchange', scheduleHomeSpotLabelUpdate)
+  map.on('moveend', scheduleHomeSpotLabelUpdate)
+  map.on('mapmove', scheduleHomeSpotLabelUpdate)
   refreshHomeMarkers()
   return true
 }
@@ -651,35 +803,26 @@ const destroyFullMap = () => {
   }
 }
 
-const initFullMap = () => {
-  if (!window.AMap) return
+const initFullMap = async () => {
   const container = document.getElementById('fullscreen-map')
   if (!container) return
+
+  try {
+    await loadAMap()
+  } catch (error) {
+    showToast('地图加载失败，请检查网络后重试')
+    return
+  }
+
   destroyFullMap()
 
-  const map = new window.AMap.Map('fullscreen-map', {
-    zoom: 6.5,
-    center: [84.5, 39.0],
-    viewMode: '3D',
-    showIndoorMap: false,
-    zooms: [6, 10]
-  })
+  const map = new window.AMap.Map('fullscreen-map', getNanjiangMapOptions())
   fullMapInstance = map
 
-  const bounds = new window.AMap.Bounds([73, 35], [96, 43])
+  const bounds = getNanjiangBounds()
   map.setLimitBounds(bounds)
   map.setBounds(bounds)
-
-  const worldBounds = [[-180, -90], [180, -90], [180, 90], [-180, 90]]
-  const southHole = [[73, 35], [73, 43], [96, 43], [96, 35]].reverse()
-  const mask = new window.AMap.Polygon({
-    path: [worldBounds, southHole],
-    fillColor: '#000000',
-    fillOpacity: 0.35,
-    strokeColor: 'none',
-    zIndex: 5
-  })
-  map.add(mask)
+  addNanjiangBoundaryLayer(map)
 
   spots.forEach(spot => {
     if (spot.lng && spot.lat) {
@@ -737,20 +880,17 @@ const initFullMap = () => {
   }
 }
 
-let mapRetryTimer = null
-const ensureHomeMap = () => {
-  if (mapRetryTimer) clearTimeout(mapRetryTimer)
-  const tryInit = () => {
-    if (!isLoggedIn.value) return
-    nextTick(() => {
-      if (window.AMap && document.getElementById('home-map')) {
-        initHomeMap()
-      } else {
-        mapRetryTimer = setTimeout(tryInit, 200)
-      }
-    })
+const ensureHomeMap = async () => {
+  if (!isLoggedIn.value) return false
+
+  try {
+    await loadAMap()
+    await nextTick()
+    return initHomeMap()
+  } catch (error) {
+    showToast('地图加载失败，请检查网络后重试')
+    return false
   }
-  tryInit()
 }
 
 const handlePopState = (event) => {
@@ -769,230 +909,286 @@ const handlePopState = (event) => {
   }
 }
 
-// ---------- 贝塞尔曲线生成函数 ----------
-/**
- * 将直线路径转换为贝塞尔曲线路径
- * 改进版：减少弯曲程度，确保起点和终点精确匹配原始坐标
- * @param {Array} path - 原始路径点数组 [[lng1, lat1], [lng2, lat2], ...]
- * @returns {Array} - 贝塞尔曲线路径点数组
- */
-const createBezierCurvePath = (path) => {
-  if (path.length < 2) return path
-  
-  const result = []
-  
-  // 确保第一个点精确匹配
-  result.push(path[0])
-  
-  for (let i = 0; i < path.length - 1; i++) {
-    const p0 = path[i]
-    const p1 = path[i + 1]
-    
-    // 计算两个点之间的中点
-    const midLng = (p0[0] + p1[0]) / 2
-    const midLat = (p0[1] + p1[1]) / 2
-    
-    // 计算两点连线的方向向量
-    const dx = p1[0] - p0[0]
-    const dy = p1[1] - p0[1]
-    
-    // 垂直向量 (旋转90度)
-    const perpDx = -dy
-    const perpDy = dx
-    
-    // 归一化垂直向量
-    const length = Math.sqrt(perpDx * perpDx + perpDy * perpDy)
-    const normalizedDx = length === 0 ? 0 : perpDx / length
-    const normalizedDy = length === 0 ? 0 : perpDy / length
-    
-    // 控制点距离（根据两点距离动态调整）- 大幅减少弯曲程度
-    const distance = Math.sqrt(dx * dx + dy * dy)
-    const controlDistance = distance * 0.05  // 从0.2减少到0.05，大大减少弯曲
-    
-    // 创建控制点（在中间点附近但略微偏移）
-    const controlLng = midLng + normalizedDx * controlDistance
-    const controlLat = midLat + normalizedDy * controlDistance
-    
-    // 对于二次贝塞尔曲线，需要三个点：起点、控制点、终点
-    // 但高德地图的Polyline不支持贝塞尔曲线，所以我们需要生成曲线上的多个点来模拟
-    const curvePoints = []
-    
-    // 增加采样密度，提高精度
-    for (let t = 0; t <= 1; t += 0.05) {  // 从0.1增加到0.05，提高精度
-      // 二次贝塞尔曲线公式: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
-      const x = (1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * controlLng + t * t * p1[0]
-      const y = (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * controlLat + t * t * p1[1]
-      curvePoints.push([x, y])
-    }
-    
-    // 将曲线点添加到结果中（跳过最后一个点，避免重复）
-    // 但确保最后添加的曲线点精确匹配下一个原始点
-    for (let j = 1; j < curvePoints.length; j++) {
-      result.push(curvePoints[j])
-    }
-    
-    // 重要：确保每个原始点都在路径中
-    if (i < path.length - 2) {
-      result.push(p1) // 添加中间点
-    }
-  }
-  
-  // 确保最后一个点精确匹配
-  if (result.length > 0) {
-    result[result.length - 1] = path[path.length - 1]
-  }
-  
-  // 调试输出：验证坐标匹配
-  console.log('原始路径点数量:', path.length)
-  console.log('生成曲线点数量:', result.length)
-  console.log('起点匹配:', 
-    Math.abs(result[0][0] - path[0][0]) < 0.000001 && 
-    Math.abs(result[0][1] - path[0][1]) < 0.000001 ? '✅' : '❌')
-  console.log('终点匹配:', 
-    Math.abs(result[result.length - 1][0] - path[path.length - 1][0]) < 0.000001 && 
-    Math.abs(result[result.length - 1][1] - path[path.length - 1][1]) < 0.000001 ? '✅' : '❌')
-  
-  return result
-}
-
 // ---------- 路线模式 ----------
 const routeMode = ref(false)
 const routeWaypoints = ref([])
-let routePolyline = null
-let startMarker = null
+const renderingRoute = ref(false)
+let activeRouteGeometry = []
+let routeOverlayEl = null
+let routeOverlayResizeObserver = null
+let routeOverlayUpdateFrame = null
+
+const waitForMapReady = (map) => new Promise((resolve) => {
+  if (!map) {
+    resolve()
+    return
+  }
+  map.on('complete', resolve)
+  requestAnimationFrame(resolve)
+})
+
+const stopRouteOverlaySync = () => {
+  if (homeMapInstance?.off) {
+    homeMapInstance.off('zoomchange', scheduleRouteOverlayUpdate)
+    homeMapInstance.off('moveend', scheduleRouteOverlayUpdate)
+    homeMapInstance.off('mapmove', scheduleRouteOverlayUpdate)
+  }
+  window.removeEventListener('resize', scheduleRouteOverlayUpdate)
+  if (routeOverlayResizeObserver) {
+    routeOverlayResizeObserver.disconnect()
+    routeOverlayResizeObserver = null
+  }
+  if (routeOverlayUpdateFrame) {
+    cancelAnimationFrame(routeOverlayUpdateFrame)
+    routeOverlayUpdateFrame = null
+  }
+}
+
+const removeRouteOverlay = () => {
+  stopRouteOverlaySync()
+  if (routeOverlayEl) {
+    routeOverlayEl.remove()
+    routeOverlayEl = null
+  }
+}
+
+const getContainerPixel = (point) => {
+  const pixel = homeMapInstance.lngLatToContainer([point[0], point[1]])
+  return {
+    x: typeof pixel.getX === 'function' ? pixel.getX() : pixel.x,
+    y: typeof pixel.getY === 'function' ? pixel.getY() : pixel.y,
+  }
+}
+
+const updateRouteOverlay = () => {
+  if (!routeOverlayEl || !homeMapInstance) return
+
+  const container = document.getElementById('home-map')
+  if (!container) return
+
+  const width = container.clientWidth
+  const height = container.clientHeight
+  const svg = routeOverlayEl.querySelector('.route-overlay-svg')
+  const pathEl = routeOverlayEl.querySelector('.route-overlay-path')
+  const connectorPathEl = routeOverlayEl.querySelector('.route-overlay-connector-path')
+  const markerLayer = routeOverlayEl.querySelector('.route-overlay-markers')
+  const labelLayer = routeOverlayEl.querySelector('.route-overlay-labels')
+  const zoom = typeof homeMapInstance.getZoom === 'function' ? homeMapInstance.getZoom() : 8
+  const labelMode = getMapLabelMode(zoom)
+  const routeLabelMode = labelMode === 'icon-only' ? 'short' : labelMode
+  const routeTextZoom = labelMode === 'icon-only' ? 7.5 : zoom
+  const markerSize = getRouteMarkerVisualSize(zoom)
+  const routePixels = activeRouteGeometry.map(getContainerPixel)
+  routeOverlayEl.dataset.labelMode = routeLabelMode
+
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+  svg.setAttribute('width', width)
+  svg.setAttribute('height', height)
+  pathEl.setAttribute('d', routePixels.map((point, index) => (
+    `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`
+  )).join(' '))
+
+  markerLayer.innerHTML = ''
+  labelLayer.innerHTML = ''
+  const labelItems = []
+  routeWaypoints.value.forEach((spot, index) => {
+    const pixel = getContainerPixel([spot.lng, spot.lat])
+    const marker = document.createElement('button')
+    marker.type = 'button'
+    marker.className = `route-overlay-marker${index === 0 ? ' is-start' : ''}`
+    marker.style.left = `${pixel.x}px`
+    marker.style.top = `${pixel.y}px`
+    marker.style.width = `${markerSize}px`
+    marker.style.height = `${markerSize}px`
+    marker.style.transform = ROUTE_MARKER_ANCHOR_TRANSFORM
+    const sequenceLabel = getRouteMarkerSequenceLabel(index)
+    const accessibleName = getRouteMarkerAccessibleName(spot, index)
+    marker.dataset.sequence = sequenceLabel
+    marker.title = accessibleName
+    marker.setAttribute('aria-label', accessibleName)
+    marker.innerHTML = `
+      <svg class="route-overlay-marker-pin" viewBox="0 0 40 48" aria-hidden="true" focusable="false">
+        <path class="route-overlay-marker-fill" d="M20 45C15 37 6 29 6 18C6 10 12 4 20 4S34 10 34 18C34 29 25 37 20 45Z" />
+        <circle cx="20" cy="18" r="5.5" />
+      </svg>
+      <span class="route-overlay-marker-label">${spot.name.length > 9 ? spot.name.slice(0, 8) + '…' : spot.name}</span>
+    `
+    marker.addEventListener('click', () => goDetail(spot.id))
+    markerLayer.appendChild(marker)
+
+    const label = document.createElement('button')
+    label.type = 'button'
+    label.className = `route-overlay-label${index === 0 ? ' is-start' : ''}`
+    label.title = accessibleName
+    label.dataset.labelMode = routeLabelMode
+    label.setAttribute('aria-label', accessibleName)
+    label.innerHTML = `
+      <span class="route-overlay-label-index">${sequenceLabel}</span>
+      <span class="route-overlay-label-name">${getLabelTextForZoom(spot.name, routeTextZoom)}</span>
+    `
+    label.addEventListener('click', () => goDetail(spot.id))
+    labelLayer.appendChild(label)
+    labelItems.push({ pixel, label })
+  })
+
+  const layouts = buildRouteLabelLayouts(labelItems.map(({ pixel, label }) => ({
+    x: pixel.x,
+    y: pixel.y,
+    width: Math.ceil(label.offsetWidth || label.scrollWidth || 96),
+    height: Math.ceil(label.offsetHeight || label.scrollHeight || 28),
+  })), {
+    markerSize,
+    gap: routeLabelMode === 'short' ? 6 : 8,
+    collisionGap: routeLabelMode === 'short' ? 6 : 4,
+    zoom,
+    maxOffset: 48,
+    hideWhenNoSpace: true,
+    forceVisible: true,
+    containerBounds: {
+      left: 8,
+      top: 8,
+      right: width - 8,
+      bottom: height - 8,
+    },
+  })
+
+  const connectorPath = []
+  layouts.forEach((layout, index) => {
+    const label = labelItems[index].label
+    if (!layout.visible) {
+      label.style.display = 'none'
+      label.dataset.visible = 'false'
+      return
+    }
+    label.dataset.visible = 'true'
+    label.style.display = ''
+    label.style.left = `${layout.rect.left}px`
+    label.style.top = `${layout.rect.top}px`
+    label.dataset.placement = layout.placement
+
+    const line = getRouteLabelConnectorLine(layout)
+    connectorPath.push(`M ${line.from.x.toFixed(1)} ${line.from.y.toFixed(1)} L ${line.to.x.toFixed(1)} ${line.to.y.toFixed(1)}`)
+  })
+  connectorPathEl.setAttribute('d', connectorPath.join(' '))
+}
+
+const scheduleRouteOverlayUpdate = () => {
+  if (routeOverlayUpdateFrame) return
+  routeOverlayUpdateFrame = requestAnimationFrame(() => {
+    routeOverlayUpdateFrame = null
+    updateRouteOverlay()
+  })
+}
+
+const startRouteOverlaySync = () => {
+  if (!homeMapInstance) return
+  homeMapInstance.on('zoomchange', scheduleRouteOverlayUpdate)
+  homeMapInstance.on('moveend', scheduleRouteOverlayUpdate)
+  homeMapInstance.on('mapmove', scheduleRouteOverlayUpdate)
+  window.addEventListener('resize', scheduleRouteOverlayUpdate)
+
+  const container = document.getElementById('home-map')
+  if (window.ResizeObserver && container) {
+    routeOverlayResizeObserver = new ResizeObserver(scheduleRouteOverlayUpdate)
+    routeOverlayResizeObserver.observe(container)
+  }
+}
+
+const createRouteOverlay = () => {
+  removeRouteOverlay()
+  const container = document.getElementById('home-map')
+  if (!container) return false
+
+  container.style.position = 'relative'
+  routeOverlayEl = document.createElement('div')
+  routeOverlayEl.className = 'route-overlay-layer'
+  routeOverlayEl.style.setProperty('--route-line-color', ROUTE_LINE_COLOR)
+  routeOverlayEl.style.setProperty('--route-line-width', ROUTE_LINE_WIDTH)
+  routeOverlayEl.innerHTML = `
+    <svg class="route-overlay-svg" aria-hidden="true">
+      <path class="route-overlay-path" />
+      <path class="route-overlay-connector-path" />
+    </svg>
+    <div class="route-overlay-markers"></div>
+    <div class="route-overlay-labels"></div>
+  `
+  container.appendChild(routeOverlayEl)
+  startRouteOverlaySync()
+  updateRouteOverlay()
+  return true
+}
+
+const setRouteViewport = (path, waypoints) => {
+  const lngValues = [...path.map(point => point[0]), ...waypoints.map(point => point.lng)]
+  const latValues = [...path.map(point => point[1]), ...waypoints.map(point => point.lat)]
+  const southWest = [Math.min(...lngValues), Math.min(...latValues)]
+  const northEast = [Math.max(...lngValues), Math.max(...latValues)]
+  const bounds = new window.AMap.Bounds(southWest, northEast)
+  homeMapInstance.setBounds(bounds, false, [70, 50, 70, 50])
+}
 
 const clearRouteMode = () => {
   routeMode.value = false
   routeWaypoints.value = []
-  if (routePolyline) {
-    routePolyline.setMap(null)
-    routePolyline = null
-  }
-  if (startMarker) {
-    startMarker.setMap(null)
-    startMarker = null
-  }
+  activeRouteGeometry = []
+  removeRouteOverlay()
   refreshHomeMarkers()
 }
 
-const showRouteOnMap = (waypoints) => {
+const renderRoutePolyline = async (validWaypoints, routeGeometry = []) => {
+  removeRouteOverlay()
+
+  routeWaypoints.value = validWaypoints
+  routeMode.value = true
+  activeRouteGeometry = buildRoutePath(validWaypoints, routeGeometry)
+  refreshHomeMarkers(true)
+
+  if (activeRouteGeometry.length < 2) {
+    showToast('路线坐标不足，无法绘制')
+    return
+  }
+
+  await waitForMapReady(homeMapInstance)
+  setRouteViewport(activeRouteGeometry, validWaypoints)
+  await nextTick()
+  requestAnimationFrame(() => {
+    if (!createRouteOverlay()) {
+      showToast('路线图层创建失败，请重试')
+    }
+  })
+}
+
+const showRouteOnMap = async (routePayload) => {
+  const waypoints = Array.isArray(routePayload) ? routePayload : routePayload?.waypoints
+  const routeGeometry = Array.isArray(routePayload) ? [] : routePayload?.routeGeometry
+  if (!Array.isArray(waypoints)) {
+    showToast('该路线暂无有效景点坐标')
+    return
+  }
+  const validWaypoints = waypoints.filter(w => w && typeof w.lng === 'number' && typeof w.lat === 'number')
+  if (validWaypoints.length === 0) {
+    showToast('该路线暂无有效景点坐标')
+    return
+  }
+
+  renderingRoute.value = true
   showRoutes.value = false
   window.history.replaceState({ page: 'home' }, '', '/')
   refreshCarouselPosition()
 
-  nextTick(() => {
+  try {
+    await nextTick()
+    await ensureHomeMap()
+
     if (!homeMapInstance) {
-      ensureHomeMap()
-      setTimeout(() => { if (homeMapInstance) showRouteOnMap(waypoints) }, 300)
+      showToast('地图尚未准备好，请稍后重试')
       return
     }
 
-    const validWaypoints = waypoints.filter(w => w && typeof w.lng === 'number' && typeof w.lat === 'number')
-    if (validWaypoints.length === 0) {
-      showToast('该路线暂无有效景点坐标')
-      return
-    }
-
-    if (routePolyline) routePolyline.setMap(null)
-    if (startMarker) startMarker.setMap(null)
-
-    routeWaypoints.value = validWaypoints
-    routeMode.value = true
-    refreshHomeMarkers(true)
-
-    const path = validWaypoints.map(w => [w.lng, w.lat])
-    if (path.length >= 2) {
-      // 创建贝塞尔曲线路径
-      const bezierPath = createBezierCurvePath(path)
-      
-      // 使用贝塞尔曲线代替普通折线
-      routePolyline = new window.AMap.Polyline({
-        path: bezierPath,
-        strokeColor: "#F5A623",
-        strokeWeight: 6,
-        strokeOpacity: 0.9,
-        strokeStyle: 'solid',
-        lineJoin: "round",
-        lineCap: "round",
-        zIndex: 200,
-        // 添加方向箭头
-        showDir: true,
-        dirColor: "#FF8A00",
-        dirImg: "https://webapi.amap.com/images/dir.png",
-        isOutline: true,
-        outlineColor: "#FFFFFF",
-        borderWeight: 1
-      })
-      routePolyline.setMap(homeMapInstance)
-      routePolyline.show()
-      
-      setTimeout(() => {
-        const hasPoly = homeMapInstance.getAllOverlays().includes(routePolyline)
-        if (!hasPoly) {
-          console.error('折线未成功添加到地图，重新尝试')
-          routePolyline.setMap(homeMapInstance)
-        } else {
-          console.log('贝塞尔曲线已成功添加到地图覆盖物列表中')
-        }
-      }, 50)
-    }
-
-    const startPoint = validWaypoints[0]
-    if (startPoint) {
-      const img = new Image()
-      img.src = '/images/walking-person.png'
-      img.onload = () => {
-        const startIcon = new window.AMap.Icon({
-          size: new window.AMap.Size(40, 40),
-          image: '/images/walking-person.png',
-          imageSize: new window.AMap.Size(40, 40),
-          // 调整锚点为图标底部中心偏上，确保人物图标底部精确对齐地面坐标
-          // 从(20,40)调整为(20,36)，让锚点上移4像素，使图标底部更接近坐标点
-          anchor: new window.AMap.Pixel(20, 36)
-        })
-        createStartMarker(startPoint, startIcon)
-      }
-      img.onerror = () => createStartMarker(startPoint, null)
-      createStartMarker(startPoint, null)
-    }
-
-    function createStartMarker(point, icon) {
-      if (startMarker) startMarker.setMap(null)
-      startMarker = new window.AMap.Marker({
-        position: [point.lng, point.lat],
-        icon: icon,
-        content: icon ? '' : '<div style="width:20px;height:20px;background:#FF3333;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3);"></div>',
-        title: '起点',
-        zIndex: 200,
-        label: {
-          content: '🚩 起点',
-          offset: new window.AMap.Pixel(0, -30),
-          direction: 'top'
-        }
-      })
-      startMarker.setMap(homeMapInstance)
-    }
-
-    const adjustView = () => {
-      if (routePolyline) {
-        const bounds = routePolyline.getBounds()
-        console.log('折线边界:', bounds)
-        if (bounds) {
-          homeMapInstance.setBounds(bounds, false, [60, 60, 60, 60])
-          console.log('使用 setBounds 调整视野')
-        } else {
-          homeMapInstance.setFitView([routePolyline], false)
-          console.log('使用 setFitView 调整视野')
-        }
-      } else if (validWaypoints.length === 1) {
-        homeMapInstance.setCenter([validWaypoints[0].lng, validWaypoints[0].lat])
-        homeMapInstance.setZoom(12)
-      }
-    }
-    
-    setTimeout(adjustView, 100)
-    setTimeout(adjustView, 300)
-  })
+    await renderRoutePolyline(validWaypoints, routeGeometry)
+  } finally {
+    renderingRoute.value = false
+  }
 }
 
 // ---------- 评论功能 ----------
@@ -1091,11 +1287,6 @@ const submitComment = () => {
 onMounted(() => {
   checkLogin()
   loadFavorites()
-  if (carouselRef.value) {
-    carouselRef.value.addEventListener('touchstart', onTouchStart)
-    carouselRef.value.addEventListener('touchmove', onTouchMove)
-    carouselRef.value.addEventListener('touchend', onTouchEnd)
-  }
   refreshCarouselPosition()
   startAuto()
   window.addEventListener('popstate', handlePopState)
@@ -1105,13 +1296,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   pauseAuto()
-  if (resetTimer) clearTimeout(resetTimer)
-  if (mapRetryTimer) clearTimeout(mapRetryTimer)
-  if (carouselRef.value) {
-    carouselRef.value.removeEventListener('touchstart', onTouchStart)
-    carouselRef.value.removeEventListener('touchmove', onTouchMove)
-    carouselRef.value.removeEventListener('touchend', onTouchEnd)
-  }
+  disposeCarousel()
   destroyHomeMap()
   destroyFullMap()
   window.removeEventListener('popstate', handlePopState)
@@ -1127,7 +1312,12 @@ watch(showMap, (newVal) => {
   }
 })
 watch(showRoutes, (newVal) => {
-  if (!newVal && !showMap.value && !showStats.value && currentDetailId.value === null) {
+  if (!newVal && shouldInitializeHomeMapAfterRoutesClose({
+    isRenderingRoute: renderingRoute.value,
+    showMap: showMap.value,
+    showStats: showStats.value,
+    currentDetailId: currentDetailId.value,
+  })) {
     refreshCarouselPosition()
     nextTick(() => ensureHomeMap())
   }
@@ -1161,6 +1351,31 @@ watch(showStats, (newVal) => {
   border-radius: 20px 20px 0 0;
   overflow: hidden;
 }
+.top-bar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.top-bar-username {
+  max-width: 120px;
+  overflow: hidden;
+  color: #666;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.logout-btn {
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: #F5A623;
+  font: inherit;
+  cursor: pointer;
+}
+.logout-btn:active {
+  opacity: 0.68;
+}
 .logo {
   display: flex;
   align-items: baseline;
@@ -1184,6 +1399,78 @@ watch(showStats, (newVal) => {
 }
 @media (max-width: 600px) {
   .logo-subtitle { font-size: 10px; }
+}
+.guide-workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 0 18px;
+}
+.guide-search {
+  margin-top: 2px;
+}
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 16px;
+}
+.quick-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid #EAD8BD;
+  border-radius: 14px;
+  background: #fff;
+  color: #3D3328;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(104, 74, 42, 0.06);
+  cursor: pointer;
+}
+.quick-action:active {
+  transform: translateY(1px);
+  opacity: 0.82;
+}
+.region-bar {
+  display: flex;
+  gap: 8px;
+  margin: 0 16px;
+  padding: 2px 0 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.region-bar::-webkit-scrollbar {
+  display: none;
+}
+.region-chip {
+  flex: 0 0 auto;
+  min-width: 58px;
+  border: 1px solid #E5D1B6;
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgba(255,255,255,0.9);
+  color: #6A5542;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.region-chip.active {
+  border-color: #C87423;
+  background: #C87423;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(200, 116, 35, 0.22);
+}
+.map-guide-section,
+.recommendation-section {
+  position: relative;
+}
+.map-title,
+.recommendation-title {
+  padding-top: 10px;
 }
 .carousel-container {
   position: relative;
@@ -1279,6 +1566,9 @@ watch(showStats, (newVal) => {
   border-radius: 30px;
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
+:deep(.amap-marker-label) {
+  display: none !important;
+}
 .search-results {
   position: absolute;
   top: 100%;
@@ -1329,7 +1619,7 @@ watch(showStats, (newVal) => {
   display: flex;
   justify-content: space-around;
   background: white;
-  margin: 8px 16px 0 16px;
+  margin: 0 16px;
   padding: 8px;
   border-radius: 28px;
   gap: 8px;
@@ -1359,14 +1649,274 @@ watch(showStats, (newVal) => {
   color: #2c2418;
 }
 .more { font-size: 13px; color: #F5A623; font-weight: 500; }
-#home-map {
-  width: 100%;
-  height: 60vh;
-  min-height: 400px;
-  border-radius: 20px;
+.route-sequence-strip {
+  display: flex;
+  gap: 8px;
+  margin: 0 16px 12px;
+  padding: 8px;
+  overflow-x: auto;
+  border: 1px solid #f1dfc8;
+  border-radius: 12px;
+  background: #fffaf3;
+  scrollbar-width: none;
+}
+.route-sequence-strip::-webkit-scrollbar {
+  display: none;
+}
+.route-sequence-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  max-width: 180px;
+  border: 0;
+  border-radius: 18px;
+  padding: 6px 10px 6px 6px;
+  background: white;
+  color: #2c2418;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+.route-sequence-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 22px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #E53935;
+  color: white;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+}
+.route-sequence-name {
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  margin: 0 0 16px 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+}
+#home-map {
+  width: calc(100% - 32px);
+  height: clamp(360px, 48vh, 480px);
+  min-height: 360px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #EAD8BD;
+  box-shadow: 0 6px 18px rgba(77, 55, 33, 0.1);
+  margin: 0 16px 16px;
+  background: #F7F0E6;
+}
+.home-map-shell {
+  contain: layout paint;
+}
+:deep(.home-spot-label-layer) {
+  position: absolute;
+  inset: 0;
+  z-index: 45;
+  pointer-events: none;
+}
+:deep(.home-spot-label) {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  max-width: 128px;
+  min-height: 24px;
+  padding: 3px 8px;
+  border: 1px solid #F5A623;
+  border-radius: 14px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.16);
+  color: #2c2418;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  pointer-events: auto;
+}
+:deep(.home-spot-label[data-label-mode="icon-only"]),
+:deep(.home-spot-label[data-visible="false"]) {
+  display: none;
+}
+:deep(.home-spot-label[data-label-mode="short"]) {
+  max-width: 86px;
+  min-height: 22px;
+  padding: 2px 6px;
+  border-radius: 12px;
+  font-size: 11px;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.14);
+}
+:deep(.home-spot-label[data-label-mode="full"]) {
+  max-width: 136px;
+}
+:deep(.route-overlay-layer) {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+}
+:deep(.route-overlay-svg) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+:deep(.route-overlay-path) {
+  fill: none;
+  stroke: var(--route-line-color, #E53935);
+  stroke-width: var(--route-line-width, 7);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.28));
+}
+:deep(.route-overlay-connector-path) {
+  fill: none;
+  stroke: rgba(229, 57, 53, 0.72);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 3 3;
+  pointer-events: none;
+}
+:deep(.route-overlay-markers) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+:deep(.route-overlay-labels) {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+:deep(.route-overlay-marker) {
+  position: absolute;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 2;
+}
+:deep(.route-overlay-marker-pin) {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: #E53935;
+  overflow: visible;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,0.35));
+  transform: translateX(-50%);
+}
+:deep(.route-overlay-marker-fill) {
+  fill: currentColor;
+  stroke: #fff;
+  stroke-width: 3;
+  stroke-linejoin: round;
+}
+:deep(.route-overlay-marker-pin circle) {
+  fill: #fff;
+}
+:deep(.route-overlay-marker.is-start .route-overlay-marker-pin) {
+  color: #F5A623;
+}
+:deep(.route-overlay-marker::after) {
+  content: attr(data-sequence);
+  position: absolute;
+  left: 50%;
+  top: 37.5%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 2px;
+  color: #E53935;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  pointer-events: none;
+}
+:deep(.route-overlay-marker.is-start::after) {
+  color: #F5A623;
+}
+:deep(.route-overlay-marker-label) {
+  display: none;
+}
+:deep(.route-overlay-label) {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 168px;
+  min-height: 28px;
+  padding: 4px 10px 4px 5px;
+  border: 1px solid #E53935;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.96);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  color: #2c2418;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 3;
+}
+:deep(.route-overlay-label[data-visible="false"]) {
+  display: none;
+}
+:deep(.route-overlay-label[data-label-mode="short"]) {
+  gap: 4px;
+  max-width: 118px;
+  min-height: 24px;
+  padding: 3px 7px 3px 4px;
+  border-radius: 14px;
+  font-size: 11px;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.18);
+}
+:deep(.route-overlay-label[data-label-mode="full"]) {
+  max-width: 172px;
+}
+:deep(.route-overlay-label.is-start) {
+  border-color: #F5A623;
+}
+:deep(.route-overlay-label-index) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #E53935;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+:deep(.route-overlay-label.is-start .route-overlay-label-index) {
+  background: #F5A623;
+}
+:deep(.route-overlay-label[data-label-mode="short"] .route-overlay-label-index) {
+  flex-basis: 16px;
+  width: 16px;
+  height: 16px;
+  font-size: 10px;
+}
+:deep(.route-overlay-label-name) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .detail-page {
   background: white;
@@ -1384,14 +1934,34 @@ watch(showStats, (newVal) => {
 .detail-img-wrapper {
   flex-shrink: 0;
   width: 120px;
+  min-height: 86px;
   background-color: #f0ebe5;
   border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
 }
+.detail-img-wrapper picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .detail-img { width: 100%; height: auto; display: block; object-fit: contain; }
 .detail-info { flex: 1; }
-.detail-info h1 { font-size: 20px; margin: 0 0 8px 0; color: #2c2418; }
+.detail-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.detail-info h1 { font-size: 20px; margin: 0; color: #2c2418; }
 .detail-info .meta { display: flex; flex-wrap: wrap; gap: 8px; }
 .tag {
   background: #f0f0f0;
@@ -1427,6 +1997,10 @@ watch(showStats, (newVal) => {
   height: 100%;
   z-index: 1000;
   background: white;
+}
+.fullscreen-map-canvas {
+  width: 100%;
+  height: 100%;
 }
 .back-btn {
   position: absolute;
@@ -1555,10 +2129,16 @@ watch(showStats, (newVal) => {
   margin-top: 20px;
 }
 .popup-buttons .van-button { flex: 1; }
+.back-list-btn {
+  margin-top: 12px;
+}
+:deep(.comment-popup-modal) {
+  height: min(420px, 48vh);
+}
 .clear-route-btn {
   position: absolute;
-  top: 70px;
-  right: 10px;
+  top: 58px;
+  right: 26px;
   background: #F5A623;
   color: white;
   padding: 6px 12px;

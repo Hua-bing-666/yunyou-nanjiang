@@ -5,6 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:web": "vite",
+    "dev:api": "node server/index.js",
+    "test": "node --test test/**/*.test.js",
     "build": "vite build",
     "preview": "vite preview"
   },

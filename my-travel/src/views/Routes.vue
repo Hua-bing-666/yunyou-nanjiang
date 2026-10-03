@@ -30,39 +30,12 @@
 <script setup>
 import { ref } from 'vue'
 import { spots } from '../data.js'
+import { recommendedRoutes } from '../data/routes.js'
 
 const emit = defineEmits(['close', 'showRouteOnMap'])
 
 // 路线数据（确保所有 spotIds 都在 spots 中存在）
-const routes = ref([
-  {
-    id: 1,
-    name: '南疆人文经典线',
-    desc: '喀什古城 → 克孜尔千佛洞 → 和田团城 → 塔什库尔干石头城',
-    spotIds: [1, 2, 3, 4],    // 全部存在于 spots
-    spotNames: ['喀什古城', '克孜尔千佛洞', '和田团城', '石头城'],
-    days: 4,
-    stars: 5
-  },
-  {
-    id: 2,
-    name: '帕米尔高原风光',
-    desc: '白沙湖 → 慕士塔格峰 → 塔什库尔干石头城',
-    spotIds: [5, 6, 4],       // 去掉盘龙古道（不在spots中）
-    spotNames: ['白沙湖', '慕士塔格峰', '石头城'],
-    days: 3,
-    stars: 5
-  },
-  {
-    id: 3,
-    name: '沙漠胡杨之旅',
-    desc: '和田团城 → 达西村 → 轮台胡杨林 → 沙漠之门',
-    spotIds: [3, 11, 8, 10],
-    spotNames: ['和田团城', '达西村', '轮台胡杨林', '沙漠之门'],
-    days: 3,
-    stars: 4
-  }
-])
+const routes = ref(recommendedRoutes)
 
 const selectRoute = (route) => {
   // 根据 spotIds 获取完整景点对象，过滤掉不存在的
@@ -70,9 +43,8 @@ const selectRoute = (route) => {
     .map(id => spots.find(s => s.id === id))
     .filter(spot => spot && spot.lng && spot.lat)
   
-  console.log('传递给地图的路径点:', waypoints)
   if (waypoints.length > 0) {
-    emit('showRouteOnMap', waypoints)
+    emit('showRouteOnMap', { ...route, waypoints })
   } else {
     alert('该路线暂无有效景点数据')
   }

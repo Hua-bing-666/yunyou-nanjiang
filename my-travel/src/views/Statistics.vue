@@ -54,14 +54,47 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch, nextTick } from 'vue'
-import * as echarts from 'echarts'
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue'
 import { spots } from '../data.js'
 
 const emit = defineEmits(['close'])
 const typeChart = ref(null)
 const regionChart = ref(null)
 const activeTab = ref('type')
+let echartsModule = null
+let typeChartInstance = null
+let regionChartInstance = null
+
+const getECharts = async () => {
+  if (!echartsModule) {
+    const [
+      echarts,
+      { PieChart, BarChart },
+      { TitleComponent, TooltipComponent, LegendComponent, GridComponent },
+      { CanvasRenderer },
+      { LabelLayout },
+    ] = await Promise.all([
+      import('echarts/core'),
+      import('echarts/charts'),
+      import('echarts/components'),
+      import('echarts/renderers'),
+      import('echarts/features'),
+    ])
+
+    echarts.use([
+      PieChart,
+      BarChart,
+      TitleComponent,
+      TooltipComponent,
+      LegendComponent,
+      GridComponent,
+      CanvasRenderer,
+      LabelLayout,
+    ])
+    echartsModule = echarts
+  }
+  return echartsModule
+}
 
 // 统计景点类型分布
 const getTypeStats = () => {
@@ -123,9 +156,11 @@ const typeStats = computed(() => {
 })
 
 // 初始化图表
-const initTypeChart = () => {
+const initTypeChart = async () => {
   if (!typeChart.value) return
-  const typeChartInstance = echarts.init(typeChart.value)
+  const echarts = await getECharts()
+  typeChartInstance?.dispose()
+  typeChartInstance = echarts.init(typeChart.value)
   const data = getTypeStats()
   
   typeChartInstance.setOption({
@@ -187,9 +222,11 @@ const initTypeChart = () => {
   })
 }
 
-const initRegionChart = () => {
+const initRegionChart = async () => {
   if (!regionChart.value) return
-  const regionChartInstance = echarts.init(regionChart.value)
+  const echarts = await getECharts()
+  regionChartInstance?.dispose()
+  regionChartInstance = echarts.init(regionChart.value)
   const regionData = getRegionStats()
   
   regionChartInstance.setOption({
@@ -272,6 +309,13 @@ const initRegionChart = () => {
 onMounted(() => {
   initTypeChart()
   initRegionChart()
+})
+
+onUnmounted(() => {
+  typeChartInstance?.dispose()
+  regionChartInstance?.dispose()
+  typeChartInstance = null
+  regionChartInstance = null
 })
 
 // 监听标签切换

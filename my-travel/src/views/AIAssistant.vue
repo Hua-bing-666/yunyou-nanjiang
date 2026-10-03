@@ -102,21 +102,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { showToast } from 'vant'
-
-// ============================================
-// 前端演示模式（当前版本：纯前端展示版）
-// ============================================
-// 说明：当前版本为前端展示版，AI助手使用本地模拟回复（getFallbackResponse），
-// 不依赖真实后端服务。用户输入后直接调用本地数据匹配，无需请求 /api/chat。
-//
-// 后续如需接入真实后端，恢复方法：
-// 1. 取消下方 API_BASE_URL 的注释
-// 2. 恢复 sendMessageToAI() 中的 fetch 请求逻辑
-// 3. 部署后端服务并配置 VITE_API_URL 环境变量
-// ============================================
-
-// (备用) 如需连接后端，取消下面这行注释并配置环境变量
-// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000'
+import { AI_SERVICE_UNAVAILABLE_MESSAGE, sendChatMessage } from '../services/aiChat.js'
+import { shouldOpenChatAfterPointerUp } from '../utils/assistantInteraction.js'
 
 // ---------- 主题切换功能 ----------
 const theme = ref(localStorage.getItem('ai-assistant-theme') || 'light')
@@ -140,6 +127,9 @@ const position = ref({ x: 20, y: 100 })
 let dragging = false
 let startMouseX = 0
 let startMouseY = 0
+let lastPointerX = 0
+let lastPointerY = 0
+let suppressNextClick = false
 let startLeft = 0
 let startTop = 0
 
@@ -153,6 +143,9 @@ const startDrag = (e) => {
   dragging = true
   startMouseX = clientX
   startMouseY = clientY
+  lastPointerX = clientX
+  lastPointerY = clientY
+  suppressNextClick = false
   startLeft = position.value.x
   startTop = position.value.y
   
@@ -174,6 +167,8 @@ const onDrag = (e) => {
   
   const clientX = e.touches ? e.touches[0].clientX : e.clientX
   const clientY = e.touches ? e.touches[0].clientY : e.clientY
+  lastPointerX = clientX
+  lastPointerY = clientY
   
   const deltaX = clientX - startMouseX
   const deltaY = clientY - startMouseY
@@ -192,7 +187,11 @@ const onDrag = (e) => {
   position.value = { x: newLeft, y: newTop }
 }
 
-const stopDrag = () => {
+const stopDrag = (e) => {
+  const clientX = e?.changedTouches ? e.changedTouches[0].clientX : (e?.clientX ?? lastPointerX)
+  const clientY = e?.changedTouches ? e.changedTouches[0].clientY : (e?.clientY ?? lastPointerY)
+  const shouldOpen = shouldOpenChatAfterPointerUp(startMouseX, startMouseY, clientX, clientY)
+  suppressNextClick = !shouldOpen || Boolean(e?.changedTouches)
   dragging = false
   if (floatBtn.value) {
     floatBtn.value.style.opacity = '1'
@@ -202,6 +201,10 @@ const stopDrag = () => {
   window.removeEventListener('touchmove', onDrag)
   window.removeEventListener('mouseup', stopDrag)
   window.removeEventListener('touchend', stopDrag)
+
+  if (shouldOpen && e?.changedTouches) {
+    toggleChat()
+  }
 }
 
 const handleResize = () => {
@@ -218,7 +221,6 @@ const chatVisible = ref(false)
 const inputText = ref('')
 const messages = ref([])
 const isTyping = ref(false)
-const sessionId = ref(localStorage.getItem('ai_session_id') || '')
 
 const presetList = ref([
   '喀什古城门票多少？',
@@ -232,8 +234,12 @@ const presetList = ref([
 const currentPresetIndex = ref(0)
 let presetTimer = null
 
-const toggleChat = () => {
-  if (dragging) return
+const toggleChat = (event) => {
+  if (dragging || suppressNextClick) {
+    suppressNextClick = false
+    event?.preventDefault()
+    return
+  }
   chatVisible.value = !chatVisible.value
   
   if (chatVisible.value) {
@@ -268,52 +274,6 @@ const sendPreset = (question) => {
   sendMessage()
 }
 
-  // 前端演示模式：直接调用本地模拟回复，不请求后端
-  // （如需连接真实后端，恢复上面注释的 API_BASE_URL 并改用 fetch 请求 /api/chat）
-  const sendMessageToAI = async (message) => {
-    // 模拟网络延迟，让骨架屏有展示效果
-    await new Promise(resolve => setTimeout(resolve, 800 + Math.random() * 600));
-    return getFallbackResponse(message);
-  }
-
-// 回退回复（当后端服务不可用时）
-const getFallbackResponse = (question) => {
-  const q = question.toLowerCase()
-  
-  if (q.includes('喀什古城') && (q.includes('门票') || q.includes('票'))) {
-    return '喀什古城是免费开放的，全天可游览。城内部分景点（如艾提尕尔清真寺）需单独购票，约45元。'
-  }
-  if (q.includes('白沙湖') && q.includes('故事')) {
-    return '白沙湖位于帕米尔高原，是《西游记》中流沙河的原型。湖边柯尔克孜族牧民世代守边，2025年曾自发为滞留游客送抓饭，被称为"高原上的暖心驿站"。'
-  }
-  if (q.includes('推荐') && q.includes('路线')) {
-    return '推荐南疆经典7日环线：喀什古城→白沙湖→慕士塔格峰→塔县石头城→盘龙古道→莎车老城→和田团城→沙漠公路→库车。可体验人文、高原、沙漠多重景观。'
-  }
-  if (q.includes('托喀依乡')) {
-    return '托喀依乡是兵团唯一的少数民族乡，维吾尔族民俗保存完好。塔里木大学干部与村民结对认亲，浙江援疆医生帮妇女创办服装合作社，是全国民族团结进步示范单位。'
-  }
-  if (q.includes('克孜尔千佛洞') && (q.includes('开放') || q.includes('时间'))) {
-    return '克孜尔千佛洞开放时间为10:00-18:00，门票70元。建议预留2-3小时参观，洞窟内禁止拍照。'
-  }
-  if (q.includes('慕士塔格峰') && (q.includes('怎么去') || q.includes('交通'))) {
-    return '从喀什出发沿G314中巴友谊公路行驶约200公里可达慕士塔格峰脚下的卡拉库里湖，车程约4小时。也可包车或参加当地一日游。'
-  }
-  if (q.includes('盘龙古道')) {
-    return '盘龙古道位于塔县瓦恰乡，全长36公里有600多个弯道，"今日走过了所有弯路，从此人生尽是坦途"路牌在此。建议越野车前往，冬季可能封闭。'
-  }
-  if (q.includes('轮台胡杨林')) {
-    return '轮台胡杨林是世界面积最大的胡杨林，最佳观赏期为10月中下旬。门票50元，景区内有小火车可深入林区。'
-  }
-  if (q.includes('和田团城')) {
-    return '和田团城是北京援疆改造的"团结之城"，免门票。可以体验艾德莱斯绸制作、品尝和田夜市美食。'
-  }
-  if (q.includes('天山神秘大峡谷')) {
-    return '天山神秘大峡谷位于库车市，门票45元，开放时间10:00-19:00。谷内阿艾石窟为唐代遗迹，注意防晒和落石。'
-  }
-  
-  return '您的问题我已收到，但目前知识库中暂无详细解答。您可以拨打南疆旅游服务热线0991-12301咨询，或前往"云游南疆"小程序查看更多攻略。'
-}
-
 const sendMessage = async () => {
   const text = inputText.value.trim()
   if (!text || isTyping.value) return
@@ -327,15 +287,16 @@ const sendMessage = async () => {
   isTyping.value = true
   
   try {
-    // 调用AI服务
-    const reply = await sendMessageToAI(text)
+    const reply = await sendChatMessage({
+      message: text,
+      history: messages.value.slice(0, -1),
+    })
     
     // 添加AI回复
     messages.value.push({ role: 'assistant', content: reply })
   } catch (error) {
-    console.error('发送消息失败:', error)
     showToast({
-      message: '发送失败，请检查网络连接',
+      message: error?.message || AI_SERVICE_UNAVAILABLE_MESSAGE,
       position: 'top',
     })
   } finally {
