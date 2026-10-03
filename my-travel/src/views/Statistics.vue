@@ -45,7 +45,8 @@
       </tbody>
     </table>
     <p class="muted">
-      基础介绍核对日期：2026-10-03。点位、开放信息、图片授权与现场行程仍需独立复核。
+      基础介绍最近核对日期：{{ latestReview }}。{{ suspended }}
+      个点位暂停展示；其余仍为参考点位。开放信息、图片授权与现场行程仍需独立复核。
     </p>
   </section>
 </template>
@@ -54,6 +55,12 @@ import { spots } from '../data.js'
 import { NANJIANG_REGIONS, getNanjiangRegionSpots } from '../utils/nanjiangMap.js'
 defineEmits(['close'])
 const reviewed = spots.filter((spot) => spot.status === 'source-reviewed').length
+const latestReview = spots
+  .map((spot) => spot.reviewedAt)
+  .filter(Boolean)
+  .sort()
+  .at(-1)
+const suspended = spots.filter((spot) => spot.coordinateStatus === 'suspended').length
 const regions = NANJIANG_REGIONS.filter((region) => region.value !== 'all').map((region) => ({
   ...region,
   count: getNanjiangRegionSpots(spots, region.value).length,

@@ -48,11 +48,13 @@
             </li>
           </ol>
           <p>交通与开放时间暂未核验，未给出未经验证的车程和预算。</p>
+          <p v-if="mapIssue(item)" class="content-notice">{{ mapIssue(item) }}</p>
           <div class="route-actions">
             <button class="primary-button" type="button" @click="save(item)">保存行程</button
             ><button type="button" @click="share(item)">复制分享链接</button
             ><button type="button" @click="download(item)">下载文字行程</button
-            ><button type="button" @click="showMap(item)">查看路线示意</button
+            ><button v-if="!mapIssue(item)" type="button" @click="showMap(item)">
+              查看路线示意</button
             ><button v-if="isSaved(item.id)" type="button" @click="remove(item.id)">
               移除保存
             </button>
@@ -71,6 +73,7 @@ import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { spots } from '../data.js'
 import { recommendedRoutes } from '../data/routes.js'
+import { routeMapIssue } from '../utils/mapAvailability.js'
 import { readStored, writeStored } from '../utils/storage.js'
 import {
   copyText,
@@ -81,6 +84,7 @@ import {
   validTravelDate,
 } from '../utils/itinerary.js'
 const emit = defineEmits(['close', 'showRouteOnMap'])
+const mapIssue = (item) => routeMapIssue(item, spots)
 const route = useRoute()
 const router = useRouter()
 const saved = ref(
@@ -159,6 +163,10 @@ function download(item) {
   feedback.value = '已下载，可离线阅读'
 }
 function showMap(item) {
+  if (mapIssue(item)) {
+    feedback.value = mapIssue(item)
+    return
+  }
   const waypoints = item.spotIds.map((id) => spots.find((spot) => spot.id === id)).filter(Boolean)
   emit('showRouteOnMap', { ...item, waypoints })
 }

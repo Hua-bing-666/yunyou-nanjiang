@@ -2,6 +2,7 @@ import { ref, computed, nextTick } from 'vue'
 import { showToast } from 'vant'
 import { spots } from '../data.js'
 import { loadAMap } from '../services/amapLoader.js'
+import { hasMapPoint, waypointMapIssue } from '../utils/mapAvailability.js'
 import {
   getNanjiangBoundsPath,
   getNanjiangMapOptions,
@@ -205,21 +206,19 @@ export function useGuideMap({
     container.style.position = 'relative'
     homeSpotLabelLayer = document.createElement('div')
     homeSpotLabelLayer.className = 'home-spot-label-layer'
-    spotsToShow
-      .filter((spot) => spot.lng && spot.lat)
-      .forEach((spot) => {
-        const isHighlighted = currentRegion.value !== 'all' || currentFilter.value !== 'all'
-        const label = document.createElement('button')
-        label.type = 'button'
-        label.className = 'home-spot-label'
-        label.dataset.spotId = String(spot.id)
-        label.dataset.highlighted = String(isHighlighted)
-        label.title = spot.name
-        label.setAttribute('aria-label', spot.name)
-        label.textContent = spot.name
-        label.addEventListener('click', () => goDetail(spot.id))
-        homeSpotLabelLayer.appendChild(label)
-      })
+    spotsToShow.filter(hasMapPoint).forEach((spot) => {
+      const isHighlighted = currentRegion.value !== 'all' || currentFilter.value !== 'all'
+      const label = document.createElement('button')
+      label.type = 'button'
+      label.className = 'home-spot-label'
+      label.dataset.spotId = String(spot.id)
+      label.dataset.highlighted = String(isHighlighted)
+      label.title = spot.name
+      label.setAttribute('aria-label', spot.name)
+      label.textContent = spot.name
+      label.addEventListener('click', () => goDetail(spot.id))
+      homeSpotLabelLayer.appendChild(label)
+    })
 
     container.appendChild(homeSpotLabelLayer)
     updateHomeSpotLabels()
@@ -239,7 +238,7 @@ export function useGuideMap({
       return true
     })
     spotsToShow.forEach((spot, idx) => {
-      if (spot.lng && spot.lat) {
+      if (hasMapPoint(spot)) {
         const marker = new window.AMap.Marker({
           position: [spot.lng, spot.lat],
           title: spot.name,
@@ -273,9 +272,7 @@ export function useGuideMap({
       return
     }
 
-    const regionSpots = getNanjiangRegionSpots(spots, currentRegion.value).filter(
-      (spot) => spot.lng && spot.lat,
-    )
+    const regionSpots = getNanjiangRegionSpots(spots, currentRegion.value).filter(hasMapPoint)
     if (regionSpots.length > 1 && typeof homeMapInstance.setFitView === 'function') {
       const markers = regionSpots.map(
         (spot) => new window.AMap.Marker({ position: [spot.lng, spot.lat] }),
@@ -378,7 +375,7 @@ export function useGuideMap({
       addNanjiangBoundaryLayer(map)
 
       spots.forEach((spot) => {
-        if (spot.lng && spot.lat) {
+        if (hasMapPoint(spot)) {
           const offsetX = 5,
             offsetY = -5
           const labelContent = spot.name.length > 10 ? spot.name.slice(0, 9) + '…' : spot.name
@@ -412,7 +409,7 @@ export function useGuideMap({
 
       if (pendingHighlightSpotId.value) {
         const spot = spots.find((s) => s.id === pendingHighlightSpotId.value)
-        if (spot) {
+        if (hasMapPoint(spot)) {
           map.setCenter([spot.lng, spot.lat])
           map.setZoom(10)
         }
@@ -718,13 +715,12 @@ export function useGuideMap({
   const showRouteOnMap = async (routePayload) => {
     if (renderingRoute.value) return
     const waypoints = Array.isArray(routePayload) ? routePayload : routePayload?.waypoints
-    const validWaypoints = Array.isArray(waypoints)
-      ? waypoints.filter((w) => w && Number.isFinite(w.lng) && Number.isFinite(w.lat))
-      : []
-    if (validWaypoints.length < 2) {
-      showToast('该路线暂无足够景点坐标')
+    const issue = waypointMapIssue(waypoints)
+    if (issue) {
+      showToast(issue)
       return
     }
+    const validWaypoints = waypoints
     renderingRoute.value = true
     const controller = new AbortController()
     routeController = controller

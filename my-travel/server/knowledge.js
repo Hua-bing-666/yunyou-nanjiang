@@ -42,7 +42,7 @@ export function referenceSources(message) {
   const matched = spots.filter(
     (spot) =>
       spot.status === 'source-reviewed' &&
-      (message.includes(spot.name) || message.includes(spot.name.slice(0, 2))),
+      [spot.name, ...(spot.aliases || [])].some((name) => message.includes(name)),
   )
   return matched
     .flatMap((spot) => spot.sources.map((source) => ({ ...source, reviewedAt: spot.reviewedAt })))

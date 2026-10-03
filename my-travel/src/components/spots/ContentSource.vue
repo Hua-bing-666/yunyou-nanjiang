@@ -8,7 +8,10 @@
         <a :href="source.url" target="_blank" rel="noopener noreferrer">{{ source.title }}</a>
       </li>
     </ul>
-    <p>门票、开放安排、导航入口和图片授权仍待确认。地图点位供查找参考，出发前请核对官方信息。</p>
+    <p v-if="spot.visitNote">{{ spot.visitNote }}</p>
+    <p v-if="spot.coordinateStatus === 'suspended'">{{ spot.coordinateNote }}</p>
+    <p v-else>地图使用原项目参考点位，实际游览入口仍待确认。</p>
+    <p>门票、开放安排和图片授权仍待确认。来源中的历史活动与优惠不代表当前安排。</p>
     <a :href="feedbackUrl" target="_blank" rel="noopener noreferrer">反馈资料问题</a>
   </aside>
 </template>

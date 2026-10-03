@@ -204,6 +204,20 @@ export function getRouteLabelConnectorLine(layout) {
  * @returns {Array<[number, number]>}
  */
 export function buildRoutePath(waypoints, routeGeometry = []) {
+  // Never bridge across a missing or suspended stop, even with provider geometry.
+  if (
+    !Array.isArray(waypoints) ||
+    waypoints.some(
+      (point) =>
+        !point ||
+        point.coordinateStatus === 'suspended' ||
+        !Number.isFinite(point.lng) ||
+        !Number.isFinite(point.lat) ||
+        Math.abs(point.lng) > 180 ||
+        Math.abs(point.lat) > 90,
+    )
+  )
+    return []
   if (Array.isArray(routeGeometry) && routeGeometry.length >= 2) {
     return routeGeometry
       .filter((point) => Array.isArray(point) && point.length >= 2)

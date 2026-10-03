@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { readFile } from 'node:fs/promises'
 import { recommendedRoutes } from '../src/data/routes.js'
+import { spots } from '../src/data/spots.js'
 
 test.beforeEach(async ({ page }) => {
   page.__errors = []
@@ -214,7 +215,7 @@ test('mobile layout has no overflow and core pages pass accessibility checks', a
 
 // This SDK fixture checks our integration contract, not provider availability or coordinates.
 function installMapFixture() {
-  const state = (window.__mapFixture = { created: 0, destroyed: 0, markers: [] })
+  const state = (window.__mapFixture = { created: 0, destroyed: 0, markers: [], centers: [] })
   class Map {
     constructor(id) {
       this.container = document.getElementById(id)
@@ -231,7 +232,9 @@ function installMapFixture() {
     setBounds(bounds) {
       this.bounds = bounds
     }
-    setCenter() {}
+    setCenter(position) {
+      state.centers.push(position)
+    }
     setZoom(value) {
       this.zoom = value
     }
@@ -305,13 +308,13 @@ test('map can retry after SDK failure and release instances during navigation', 
   await expect(page.getByRole('button', { name: '重试地图' })).toBeVisible()
   await page.evaluate(installMapFixture)
   await page.getByRole('button', { name: '重试地图' }).click()
-  await expect(page.locator('.home-spot-label')).toHaveCount(12)
+  await expect(page.locator('.home-spot-label')).toHaveCount(9)
   await page.locator('.spot-card').first().getByRole('link').click()
   await page.getByRole('button', { name: '在导览地图查看' }).click()
   await expect(page.locator('#fullscreen-map')).toBeVisible()
   await expect.poll(() => page.evaluate(() => window.__mapFixture.created)).toBe(2)
   await page.getByRole('button', { name: '返回景点导览' }).click()
-  await expect(page.locator('.home-spot-label')).toHaveCount(12)
+  await expect(page.locator('.home-spot-label')).toHaveCount(9)
   await expect.poll(() => page.evaluate(() => window.__mapFixture.destroyed)).toBe(2)
 })
 
@@ -333,7 +336,7 @@ test('route fallback is labelled, styled and navigates to the correct spot', asy
   await expect(page).toHaveURL(new RegExp(`detail/${recommendedRoutes[0].spotIds[0]}$`))
   await page.getByRole('button', { name: '返回景点导览' }).click()
   await expect(page.locator('.route-overlay-marker')).toHaveCount(0)
-  await expect(page.locator('.home-spot-label')).toHaveCount(12)
+  await expect(page.locator('.home-spot-label')).toHaveCount(9)
 })
 
 test('late road response cannot restore a cleared route preview', async ({ page }) => {
@@ -363,7 +366,7 @@ test('late road response cannot restore a cleared route preview', async ({ page 
   await page.getByRole('button', { name: '清除路线' }).click()
   release()
   await expect(page.locator('.route-overlay-marker')).toHaveCount(0)
-  await expect(page.locator('.home-spot-label')).toHaveCount(12)
+  await expect(page.locator('.home-spot-label')).toHaveCount(9)
 })
 
 test('assistant can be opened and closed using a keyboard and has accessible controls', async ({
@@ -411,5 +414,71 @@ test('map information actions open the full map and correct detail without delay
   await expect.poll(() => page.evaluate(() => window.__mapFixture.created)).toBe(2)
   await page.evaluate(() => window.__mapFixture.markers.at(-1).events.click())
   await page.getByRole('button', { name: '查看景点详情' }).click()
-  await expect(page).toHaveURL(/detail\/12$/)
+  await expect(page).toHaveURL(/detail\/11$/)
+})
+
+test('suspended points stay available as content without invalid map markers or map centering', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await page.evaluate(installMapFixture)
+  await page.getByRole('button', { name: '重试地图' }).click()
+  await expect(page.locator('.spot-card')).toHaveCount(12)
+  await expect(page.locator('.home-spot-label')).toHaveCount(9)
+  for (const id of [5, 6, 12])
+    await expect(page.locator(`.home-spot-label[data-spot-id="${id}"]`)).toHaveCount(0)
+  await page.locator('.spot-card a[href="/detail/5"]').click()
+  await expect(page.locator('.source-card')).toContainText('暂停展示')
+  await page.getByRole('button', { name: '在导览地图查看' }).click()
+  await expect(page).toHaveURL(/map\/5$/)
+  await expect(page.getByRole('status').filter({ hasText: '当前显示区域导览' })).toBeVisible()
+  expect(await page.evaluate(() => window.__mapFixture.centers)).toEqual([])
+  expect(
+    await page.evaluate(() =>
+      window.__mapFixture.markers.every((marker) => marker.options.position.every(Number.isFinite)),
+    ),
+  ).toBe(true)
+})
+
+test('blocked route remains savable and exportable but makes no road request', async ({ page }) => {
+  let requests = 0
+  page.on('request', (request) => {
+    if (new URL(request.url()).pathname === '/api/route') requests++
+  })
+  await page.goto('/routes?route=2')
+  await expect(page.getByText(/白沙湖.*慕士塔格峰.*暂不提供地图连线/)).toBeVisible()
+  await expect(page.getByRole('button', { name: '查看路线示意' })).toHaveCount(0)
+  await page.getByRole('button', { name: '保存行程', exact: true }).click()
+  await expect(page.getByText('已保存到当前设备，可在“我的行程”查看')).toBeVisible()
+  const downloadEvent = page.waitForEvent('download')
+  await page.getByRole('button', { name: '下载文字行程' }).click()
+  const download = await downloadEvent
+  const text = await readFile(await download.path(), 'utf8')
+  expect(text).toContain('地图状态：')
+  expect(text).toContain('暂不提供地图连线')
+  expect(requests).toBe(0)
+  await page.reload()
+  await expect(page.getByRole('button', { name: '移除保存' })).toBeVisible()
+})
+
+test('every introduction has sources and legacy search names still find the correct destination', async ({
+  page,
+}) => {
+  for (const spot of spots) {
+    await page.goto(`/detail/${spot.id}`)
+    await expect(page.locator('.source-card')).toContainText(spot.reviewedAt)
+    for (const source of spot.sources)
+      await expect(
+        page.locator('.source-card a').filter({ hasText: source.title }),
+      ).toHaveAttribute('href', source.url)
+  }
+  for (const [keyword, id] of [
+    ['轮台胡杨林', 8],
+    ['喀什帕米尔白沙湖', 5],
+  ]) {
+    await page.goto('/')
+    await page.getByLabel('搜索景点、地区或主题路线').fill(keyword)
+    await page.locator('.search-results').getByRole('button').first().click()
+    await expect(page).toHaveURL(new RegExp(`/detail/${id}$`))
+  }
 })

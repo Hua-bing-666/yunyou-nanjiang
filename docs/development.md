@@ -33,7 +33,8 @@
 ## 开发规则
 
 - 景点资料改 `src/data/spots.js`；只有附来源且 `source-reviewed` 的基础介绍进入助手上下文。更新具体出行信息需独立核验。
-- 草稿路线改 `src/data/routes.js`；保留景点顺序，实际道路几何由 `/api/route` 获取。失败时显示带标识的点位连线。
+- 草稿路线改 `src/data/routes.js`；保留景点顺序，实际道路几何由 `/api/route` 获取。全部点位可显示时，接口失败保留带标识的连线；存在暂停／缺失点位时，整条线路不绘制、不查询道路，API 返回 422。
+- 地图可用性统一在 `src/utils/mapAvailability.js` 判断；不能直接把 `null` 转为零、跳过缺失站点或将山峰位置当作入口。旧名称放入 `aliases`，便于搜索及助手识别。
 - 收藏和笔记仅在浏览器保存；分享仅含预置路线 ID 与日期。不对外声称云同步、公众评论或真实经营统计。
 - 错误不能输出上游秘密；天气、路线、助手失败不阻断主要内容。
 - `npm run format:check`、`npm test`、`npm run test:e2e` 为提交前检查。浏览器首次安装 `npx playwright install chromium firefox`。

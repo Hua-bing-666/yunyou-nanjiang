@@ -20,6 +20,7 @@ import {
 } from '../src/utils/routeDisplay.js'
 import { recommendedRoutes } from '../src/data/routes.js'
 import { spots } from '../src/data.js'
+import { routeMapIssue } from '../src/utils/mapAvailability.js'
 
 test('builds a route path through all waypoints in order', () => {
   const waypoints = [
@@ -51,6 +52,10 @@ test('route geometry keeps every route spot coordinate in order', () => {
       route.spotIds.map((id) => spots.find((spot) => spot.id === id)),
       route.routeGeometry,
     )
+    if (routeMapIssue(route, spots)) {
+      assert.deepEqual(routePath, [], 'Do not connect around a suspended waypoint')
+      continue
+    }
 
     let searchFrom = 0
     for (const spotId of route.spotIds) {

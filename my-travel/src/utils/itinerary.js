@@ -1,4 +1,5 @@
 import { recommendedRoutes } from '../data/routes.js'
+import { routeMapIssue } from './mapAvailability.js'
 import { spots } from '../data.js'
 
 // Share only a known route and a validated date, never notes or identity.
@@ -37,6 +38,8 @@ export function itineraryText(route, startDate = '') {
       day.note,
     )
   }
+  const mapIssue = routeMapIssue(route, spots)
+  if (mapIssue) lines.push(`\n地图状态：${mapIssue}`)
   lines.push('\n地图连线为路线示意，不代表道路导航。资料与个人收藏保存在当前设备。')
   return lines.join('\n')
 }

@@ -98,6 +98,11 @@
             <h2 id="map-title">南疆导览地图</h2>
             <span>{{ currentRegionLabel }} · 参考点位</span>
           </div>
+          <p v-if="unmappedSpots.length" class="muted">
+            {{
+              unmappedSpots.map((spot) => spot.name).join('、')
+            }}的点位正在复核，暂不标注；可在下方查看资料。
+          </p>
           <template v-if="routeMode"
             ><p class="content-notice" role="status">{{ routeNotice }}</p>
             <button type="button" @click="clearRouteMode">清除路线</button>
@@ -207,7 +212,10 @@
       <section v-else-if="route.name === 'map'" class="map-page">
         <button type="button" class="back-button" @click="closeMapPage">← 返回景点导览</button>
         <h1>导览地图</h1>
-        <p class="content-notice">参考点位尚待核验，请在正规地图中确认目的地入口。</p>
+        <p v-if="mapSpot && !hasMapPoint(mapSpot)" class="content-notice" role="status">
+          {{ mapSpot.name }}：{{ mapSpot.coordinateNote }}当前显示区域导览。
+        </p>
+        <p v-else class="content-notice">参考点位尚待核验，请在正规地图中确认目的地入口。</p>
         <div class="map-container">
           <div
             id="fullscreen-map"
@@ -248,6 +256,7 @@ import { useFavorites } from './composables/useFavorites.js'
 import { useGuideMap } from './composables/useGuideMap.js'
 import { getImageFormatSources } from './utils/imageAssets.js'
 import { getNanjiangRegionSpots } from './utils/nanjiangMap.js'
+import { hasMapPoint } from './utils/mapAvailability.js'
 const Routes = defineAsyncComponent(() => import('./views/Routes.vue'))
 const Statistics = defineAsyncComponent(() => import('./views/Statistics.vue'))
 const AIAssistant = defineAsyncComponent(() => import('./views/AIAssistant.vue'))
@@ -258,6 +267,7 @@ const showRoutes = computed(() => route.name === 'routes')
 const showStats = computed(() => route.name === 'stats')
 const currentDetailId = computed(() => (route.name === 'detail' ? Number(route.params.id) : null))
 const currentDetail = computed(() => spots.find((spot) => spot.id === currentDetailId.value) || {})
+const mapSpot = computed(() => spots.find((spot) => spot.id === Number(route.params.id)))
 const currentDetailImageSources = computed(() => getImageFormatSources(currentDetail.value.image))
 const goDetail = (id) => router.push(`/detail/${id}`)
 const backToList = () => router.push('/')
@@ -309,6 +319,7 @@ const filteredSpots = computed(() =>
         : spot.type === currentFilter.value),
   ),
 )
+const unmappedSpots = computed(() => filteredSpots.value.filter((spot) => !hasMapPoint(spot)))
 const searchKeyword = ref('')
 const searchResults = computed(() => {
   const query = searchKeyword.value.trim().toLowerCase()
@@ -316,8 +327,8 @@ const searchResults = computed(() => {
   return [
     ...spots
       .filter((spot) =>
-        [spot.name, spot.address, spot.description, spot.shortDesc].some((value) =>
-          value.toLowerCase().includes(query),
+        [spot.name, ...(spot.aliases || []), spot.address, spot.description, spot.shortDesc].some(
+          (value) => value.toLowerCase().includes(query),
         ),
       )
       .map((spot) => ({

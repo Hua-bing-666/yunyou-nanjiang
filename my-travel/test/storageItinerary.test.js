@@ -8,6 +8,7 @@ import {
   validTravelDate,
 } from '../src/utils/itinerary.js'
 import { spots } from '../src/data.js'
+import { hasMapPoint } from '../src/utils/mapAvailability.js'
 import { recommendedRoutes } from '../src/data/routes.js'
 import { existsSync } from 'node:fs'
 
@@ -56,7 +57,12 @@ test('all published records have explicit review and coordinate status and exist
   assert.equal(ids.size, spots.length)
   for (const spot of spots) {
     assert.ok(['source-reviewed', 'draft'].includes(spot.status))
-    assert.equal(spot.coordinateStatus, 'reference')
+    assert.ok(['reference', 'suspended', 'verified'].includes(spot.coordinateStatus))
+    if (spot.coordinateStatus === 'suspended') {
+      assert.equal(spot.lat, null)
+      assert.equal(spot.lng, null)
+      assert.ok(spot.coordinateNote)
+    } else assert.ok(hasMapPoint(spot), `${spot.name} has invalid coordinates`)
     assert.equal(spot.imageLicense, 'pending')
     assert.match(spot.ticket, /核验/)
     assert.ok(existsSync(new URL(`../public${spot.image}`, import.meta.url)))

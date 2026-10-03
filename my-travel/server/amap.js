@@ -1,6 +1,7 @@
 import { spots } from '../src/data/spots.js'
 import { recommendedRoutes } from '../src/data/routes.js'
 import { ServiceError, upstreamJson } from './errors.js'
+import { routeMapIssue } from '../src/utils/mapAvailability.js'
 
 export function createAMapHandlers({
   apiKey = process.env.AMAP_WEBSERVICE_KEY,
@@ -40,6 +41,8 @@ export function createAMapHandlers({
     async route(routeId) {
       const route = recommendedRoutes.find((item) => item.id === Number(routeId))
       if (!route) throw new ServiceError(400, '无效路线')
+      const issue = routeMapIssue(route, spots)
+      if (issue) throw new ServiceError(422, issue)
       const key = `route:${route.id}`
       const old = cache.get(key)
       if (old && old.expires > Date.now()) return old.value
