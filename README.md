@@ -59,6 +59,7 @@ npm start                 # 同源生产服务，默认 http://127.0.0.1:3001
 
 ## 说明与交付
 
+- [2026-11-07 项目复查](docs/PROJECT_REVIEW_2026-11-07.md)：当前架构、仓库分支、重新验证结果与待修问题。
 - [项目规划与痛点分析](docs/PROJECT_PLAN.md)：政策、案例、商业验证与六周路线图。
 - [本轮验收报告](docs/ACCEPTANCE.md)：通过项、真实服务验证范围、待人工核验项。
 - [开发配置](docs/development.md)、[部署与回滚](docs/deployment.md)。
