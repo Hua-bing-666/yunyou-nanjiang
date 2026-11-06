@@ -1,8 +1,10 @@
-import { createServer, createChatHandler } from '../server/deepseekProxy.js'
+import { createApplication } from '../server/application.js'
 import path from 'node:path'
-const server = createServer({
+const { server } = createApplication({
+  filename: ':memory:',
+  forceLocal: true,
+  adminPassword: 'acceptance-admin-pass-2026',
   staticDir: path.resolve('dist'),
-  chatHandler: createChatHandler({ apiKey: '' }),
   rateLimit: 10000,
 })
 server.listen(4173, '127.0.0.1')

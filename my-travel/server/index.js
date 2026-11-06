@@ -1,7 +1,8 @@
 import { config } from 'dotenv'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createServer, createChatHandler, DEFAULT_PROXY_PORT } from './deepseekProxy.js'
+import { DEFAULT_PROXY_PORT } from './deepseekProxy.js'
+import { createApplication } from './application.js'
 
 const appRoot = fileURLToPath(new URL('..', import.meta.url))
 config({ path: [path.join(appRoot, '.env.local'), path.join(appRoot, '.env')], quiet: true })
@@ -16,17 +17,15 @@ if (
   dailyLimit > 10000
 )
   throw new Error('PORT 或 AI_DAILY_LIMIT 无效')
-const server = createServer({
-  chatHandler: createChatHandler({
-    apiKey: process.env.AI_MODE === 'local' ? '' : process.env.DEEPSEEK_API_KEY,
-    dailyLimit,
-  }),
-  allowedOrigins: (process.env.ALLOWED_ORIGINS || 'http://localhost:5173,http://127.0.0.1:5173')
-    .split(',')
-    .filter(Boolean),
+const { server } = createApplication({
+  bootstrap: true,
   staticDir: process.env.NODE_ENV === 'production' ? path.join(appRoot, 'dist') : undefined,
 })
 const host = process.env.HOST || '127.0.0.1'
-server.listen(port, host, () => console.log(`云游南疆服务已启动：http://${host}:${port}`))
+server.listen(port, host, () =>
+  console.log(
+    `云游南疆服务已启动：http://${host}:${port}；管理入口 /admin（首次账号见 data/admin-bootstrap.txt 或管理员配置）`,
+  ),
+)
 for (const signal of ['SIGINT', 'SIGTERM'])
   process.on(signal, () => server.close(() => process.exit(0)))

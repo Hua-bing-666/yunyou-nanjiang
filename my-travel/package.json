@@ -1,16 +1,17 @@
 {
   "name": "yunyou-nanjiang",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node ../scripts/dev.mjs",
     "dev:web": "vite",
-    "dev:api": "node server/index.js",
+    "dev:api": "node server/launch.js",
     "test": "node --test test/*.test.js",
     "build": "vite build",
     "preview": "vite preview",
     "start": "node ../scripts/start-production.mjs",
+    "db:backup": "node server/backup.js",
     "test:e2e": "npm run build && playwright test",
     "check": "npm test && npm run test:e2e",
     "format": "prettier --write src server test e2e *.js *.json",
@@ -30,6 +31,6 @@
     "vite": "^8.0.3"
   },
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": "^24.5.0"
   }
 }

@@ -32,6 +32,7 @@ jobs:
             my-travel/server
             my-travel/src/data
             my-travel/src/data.js
+            my-travel/src/utils/mapAvailability.js
             my-travel/package.json
             my-travel/package-lock.json
             my-travel/.env.example

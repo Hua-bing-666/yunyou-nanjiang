@@ -1,6 +1,6 @@
 import { ref, computed, nextTick } from 'vue'
 import { showToast } from 'vant'
-import { spots } from '../data.js'
+import { spots } from '../services/catalog.js'
 import { loadAMap } from '../services/amapLoader.js'
 import { hasMapPoint, waypointMapIssue } from '../utils/mapAvailability.js'
 import {
@@ -40,6 +40,8 @@ export function useGuideMap({
   // ---------- 筛选与地图标记 ----------
   const mapError = ref('')
   const mapLoading = ref(false)
+  const mapDeferred = ref(false)
+  let homeMapRequested = false
   const routeNotice = ref('')
   let mapLoadVersion = 0
   const filters = ref([
@@ -426,6 +428,13 @@ export function useGuideMap({
   const ensureHomeMap = async () => {
     const container = document.getElementById('home-map')
     if (!container) return false
+    if (!window.AMap && !homeMapRequested && import.meta.env.VITE_AMAP_KEY) {
+      mapDeferred.value = true
+      mapLoading.value = false
+      mapError.value = ''
+      return false
+    }
+    mapDeferred.value = false
     const version = ++mapLoadVersion
     mapError.value = ''
     mapLoading.value = true
@@ -443,6 +452,10 @@ export function useGuideMap({
     } finally {
       if (version === mapLoadVersion) mapLoading.value = false
     }
+  }
+  const loadHomeMap = () => {
+    homeMapRequested = true
+    return ensureHomeMap()
   }
 
   // ---------- 路线模式 ----------
@@ -728,7 +741,7 @@ export function useGuideMap({
     try {
       await router.push('/')
       await nextTick()
-      await ensureHomeMap()
+      await loadHomeMap()
       if (!homeMapInstance || controller.signal.aborted) return
       await renderRoutePolyline(validWaypoints)
       if (routePayload?.id) {
@@ -773,6 +786,8 @@ export function useGuideMap({
     routeNotice,
     mapError,
     mapLoading,
+    mapDeferred,
+    loadHomeMap,
     ensureHomeMap,
     initFullMap,
     destroyHomeMap,

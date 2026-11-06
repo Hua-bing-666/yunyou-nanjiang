@@ -7,6 +7,7 @@ export function createAMapHandlers({
   apiKey = process.env.AMAP_WEBSERVICE_KEY,
   fetchImpl = globalThis.fetch,
   timeoutMs = 12000,
+  getCatalog = () => ({ spots, routes: recommendedRoutes }),
 } = {}) {
   const cache = new Map()
   async function request(endpoint, params) {
@@ -20,7 +21,7 @@ export function createAMapHandlers({
   }
   return {
     async weather(adcode) {
-      if (!/^\d{6}$/.test(adcode) || !spots.some((spot) => spot.adcode === adcode))
+      if (!/^\d{6}$/.test(adcode) || !getCatalog().spots.some((spot) => spot.adcode === adcode))
         throw new ServiceError(400, '无效地区')
       const key = `weather:${adcode}`
       const old = cache.get(key)
@@ -39,11 +40,12 @@ export function createAMapHandlers({
       return value
     },
     async route(routeId) {
-      const route = recommendedRoutes.find((item) => item.id === Number(routeId))
+      const { spots, routes } = getCatalog()
+      const route = routes.find((item) => item.id === Number(routeId))
       if (!route) throw new ServiceError(400, '无效路线')
       const issue = routeMapIssue(route, spots)
       if (issue) throw new ServiceError(422, issue)
-      const key = `route:${route.id}`
+      const key = `route:${route.id}:${JSON.stringify(route.spotIds.map((id) => spots.find((spot) => spot.id === id)))}`
       const old = cache.get(key)
       if (old && old.expires > Date.now()) return old.value
       const waypoints = route.spotIds.map((id) => spots.find((spot) => spot.id === id))
