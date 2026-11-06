@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { h } from 'vue'
-import { spots } from '../data.js'
+import { spots } from '../services/catalog.js'
 
 const shell = { render: () => h('span') }
 export const router = createRouter({
@@ -15,6 +15,8 @@ export const router = createRouter({
     },
     { path: '/routes', name: 'routes', component: shell },
     { path: '/stats', name: 'stats', component: shell },
+    { path: '/culture', name: 'culture', component: shell },
+    { path: '/profile', name: 'profile', component: shell },
     {
       path: '/map/:id(\\d+)?',
       name: 'map',
@@ -39,7 +41,13 @@ router.beforeEach((to) => {
 router.afterEach((to) => {
   const spot = spots.find((item) => item.id === Number(to.params.id))
   const title =
-    { routes: '主题路线', stats: '资料分布', map: '导览地图' }[to.name] ||
+    {
+      routes: '主题路线',
+      stats: '资料分布',
+      map: '导览地图',
+      culture: '文化资料',
+      profile: '游客资料',
+    }[to.name] ||
     spot?.name ||
     '南疆文化导览'
   document.title = `${title} · 云游南疆`

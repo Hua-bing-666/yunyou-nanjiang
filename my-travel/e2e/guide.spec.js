@@ -24,6 +24,7 @@ test('visitor can browse without a login and find map fallback', async ({ page }
   await page.goto('/')
   await expect(page.getByRole('heading', { name: '看见风景，也读懂地方。' })).toBeVisible()
   await expect(page.locator('.spot-card')).toHaveCount(12)
+  await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
   await expect(page.getByText('地图暂不可用，请重试；你仍可浏览景点与保存行程')).toBeVisible()
   await expect(page.getByText('请输入用户名')).toHaveCount(0)
 })
@@ -305,9 +306,10 @@ test('map can retry after SDK failure and release instances during navigation', 
   page,
 }) => {
   await page.goto('/')
+  await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
   await expect(page.getByRole('button', { name: '重试地图' })).toBeVisible()
   await page.evaluate(installMapFixture)
-  await page.getByRole('button', { name: '重试地图' }).click()
+  await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
   await expect(page.locator('.home-spot-label')).toHaveCount(9)
   await page.locator('.spot-card').first().getByRole('link').click()
   await page.getByRole('button', { name: '在导览地图查看' }).click()
@@ -403,7 +405,7 @@ test('map information actions open the full map and correct detail without delay
 }) => {
   await page.goto('/')
   await page.evaluate(installMapFixture)
-  await page.getByRole('button', { name: '重试地图' }).click()
+  await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
   await page.evaluate(() =>
     window.__mapFixture.markers
       .find((marker) => marker.options.title === '喀什古城')
@@ -422,7 +424,7 @@ test('suspended points stay available as content without invalid map markers or 
 }) => {
   await page.goto('/')
   await page.evaluate(installMapFixture)
-  await page.getByRole('button', { name: '重试地图' }).click()
+  await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
   await expect(page.locator('.spot-card')).toHaveCount(12)
   await expect(page.locator('.home-spot-label')).toHaveCount(9)
   for (const id of [5, 6, 12])

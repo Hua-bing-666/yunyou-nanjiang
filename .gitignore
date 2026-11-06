@@ -55,3 +55,9 @@ playwright-report/
 test-results/
 artifacts/
 __pycache__/
+
+# Local SQLite data, encrypted settings key, initial administrator credentials
+my-travel/data/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm

@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { spots } from '../data.js'
+import { spots } from '../services/catalog.js'
 import { readStored, writeStored, validIds } from '../utils/storage.js'
 
 export function useFavorites(onError = () => {}) {

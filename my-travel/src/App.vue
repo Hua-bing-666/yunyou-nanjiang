@@ -23,9 +23,13 @@
           主题路线
         </button>
         <button type="button" @click="router.push('/routes?saved=1')">我的行程</button>
+        <button type="button" @click="router.push('/culture')">文化资料</button>
       </nav>
     </header>
     <main id="main-content">
+      <p v-if="catalogState.cached" class="content-notice" role="status">
+        当前显示上次缓存的公开资料，可能不是最新内容；恢复网络后请刷新核对。
+      </p>
       <template v-if="route.name === 'home'">
         <section class="hero">
           <div>
@@ -46,7 +50,7 @@
         </section>
         <p class="content-notice">
           内容整理版 ·
-          门票、开放安排、点位及行程尚待出行核验。基础介绍提供来源；旅行计划与笔记保存在当前设备。
+          门票、开放安排、点位及行程尚待出行核验。基础介绍提供来源；旅行计划与笔记默认保存在当前设备。
         </p>
         <section class="search-section" aria-label="查找目的地">
           <label for="guide-search">搜索景点、地区或主题路线</label>
@@ -119,9 +123,15 @@
           >
           <div class="map-container">
             <div id="home-map" class="home-map-shell" role="region" aria-label="高德导览地图"></div>
-            <div v-if="mapLoading || mapError" class="map-fallback" role="status">
-              <p>{{ mapLoading ? '地图加载中…' : mapError }}</p>
-              <button v-if="mapError" type="button" @click="ensureHomeMap">重试地图</button>
+            <div v-if="mapLoading || mapError || mapDeferred" class="map-fallback" role="status">
+              <template v-if="mapDeferred"
+                ><p>按需加载交互地图，先浏览目的地也可以。</p>
+                <button type="button" @click="loadHomeMap">加载交互地图</button></template
+              >
+              <template v-else>
+                <p>{{ mapLoading ? '地图加载中…' : mapError }}</p>
+                <button v-if="mapError" type="button" @click="loadHomeMap">重试地图</button>
+              </template>
             </div>
           </div>
         </section>
@@ -209,6 +219,8 @@
         @show-route-on-map="showRouteOnMap"
       />
       <Statistics v-else-if="route.name === 'stats'" @close="router.push('/')" />
+      <Culture v-else-if="route.name === 'culture'" />
+      <VisitorProfile v-else-if="route.name === 'profile'" />
       <section v-else-if="route.name === 'map'" class="map-page">
         <button type="button" class="back-button" @click="closeMapPage">← 返回景点导览</button>
         <h1>导览地图</h1>
@@ -233,6 +245,8 @@
     <footer class="site-footer">
       <p>云游南疆 · 文化导览与主题行程</p>
       <a href="/stats" @click.prevent="router.push('/stats')">本站资料分布</a
+      ><a href="/profile" @click.prevent="router.push('/profile')">游客资料与服务端行程</a
+      ><a href="/admin">管理后台</a
       ><a
         href="https://github.com/Hua-bing-666/yunyou-nanjiang/issues/new"
         target="_blank"
@@ -247,8 +261,8 @@
 import { computed, defineAsyncComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { spots } from './data.js'
-import { recommendedRoutes } from './data/routes.js'
+import { spots, catalogState } from './services/catalog.js'
+import { recommendedRoutes } from './services/catalog.js'
 import WeatherInfo from './components/WeatherInfo.vue'
 import TravelNotes from './components/spots/TravelNotes.vue'
 import ContentSource from './components/spots/ContentSource.vue'
@@ -260,6 +274,8 @@ import { hasMapPoint } from './utils/mapAvailability.js'
 const Routes = defineAsyncComponent(() => import('./views/Routes.vue'))
 const Statistics = defineAsyncComponent(() => import('./views/Statistics.vue'))
 const AIAssistant = defineAsyncComponent(() => import('./views/AIAssistant.vue'))
+const Culture = defineAsyncComponent(() => import('./views/Culture.vue'))
+const VisitorProfile = defineAsyncComponent(() => import('./views/VisitorProfile.vue'))
 const router = useRouter()
 const route = useRoute()
 const showMap = computed(() => route.name === 'map')
@@ -292,6 +308,8 @@ const {
   routeNotice,
   mapError,
   mapLoading,
+  mapDeferred,
+  loadHomeMap,
   ensureHomeMap,
   initFullMap,
   destroyHomeMap,

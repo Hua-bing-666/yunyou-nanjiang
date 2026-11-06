@@ -53,6 +53,8 @@
             <button class="primary-button" type="button" @click="save(item)">保存行程</button
             ><button type="button" @click="share(item)">复制分享链接</button
             ><button type="button" @click="download(item)">下载文字行程</button
+            ><button type="button" :disabled="cloudSaving" @click="saveCloud(item)">
+              {{ cloudSaving ? '保存中…' : '保存到服务端' }}</button
             ><button v-if="!mapIssue(item)" type="button" @click="showMap(item)">
               查看路线示意</button
             ><button v-if="isSaved(item.id)" type="button" @click="remove(item.id)">
@@ -64,15 +66,16 @@
       </article>
     </div>
     <p class="muted">
-      行程仅保存在当前设备；清除浏览器数据会移除保存记录。下载的文字行程可离线阅读。分享链接只含路线与日期。
+      “保存行程”保存在当前设备；清除浏览器数据会移除本地记录。“保存到服务端”需要先自愿提交游客资料，可在游客资料页查看与删除。下载文本可离线阅读，分享链接只含路线与日期。
     </p>
   </section>
 </template>
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { spots } from '../data.js'
-import { recommendedRoutes } from '../data/routes.js'
+import { api } from '../services/api.js'
+import { spots } from '../services/catalog.js'
+import { recommendedRoutes } from '../services/catalog.js'
 import { routeMapIssue } from '../utils/mapAvailability.js'
 import { readStored, writeStored } from '../utils/storage.js'
 import {
@@ -82,7 +85,7 @@ import {
   sharePath,
   validateSavedRoute,
   validTravelDate,
-} from '../utils/itinerary.js'
+} from '../services/itinerary.js'
 const emit = defineEmits(['close', 'showRouteOnMap'])
 const mapIssue = (item) => routeMapIssue(item, spots)
 const route = useRoute()
@@ -100,6 +103,24 @@ const saved = ref(
 const selectedId = ref(null)
 const startDate = ref('')
 const feedback = ref('')
+const cloudSaving = ref(false)
+async function saveCloud(item) {
+  cloudSaving.value = true
+  try {
+    await api('/api/visitor/itineraries', {
+      method: 'POST',
+      body: { routeId: item.id, startDate: startDate.value },
+    })
+    feedback.value = '已保存到服务端，可在游客资料页查看与删除；当前浏览器凭证用于访问这些资料。'
+  } catch (error) {
+    if (error.status === 401) {
+      feedback.value = '请先在游客资料页自愿保存资料'
+      await router.push('/profile')
+    } else feedback.value = error.message
+  } finally {
+    cloudSaving.value = false
+  }
+}
 const savedOnly = computed(() => route.query.saved === '1')
 const isSaved = (id) => saved.value.some((item) => item.routeId === id)
 const visibleRoutes = computed(() =>

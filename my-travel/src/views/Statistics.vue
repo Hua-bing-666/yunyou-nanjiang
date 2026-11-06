@@ -51,7 +51,7 @@
   </section>
 </template>
 <script setup>
-import { spots } from '../data.js'
+import { spots } from '../services/catalog.js'
 import { NANJIANG_REGIONS, getNanjiangRegionSpots } from '../utils/nanjiangMap.js'
 defineEmits(['close'])
 const reviewed = spots.filter((spot) => spot.status === 'source-reviewed').length
