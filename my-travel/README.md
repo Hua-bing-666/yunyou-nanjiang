@@ -4,4 +4,4 @@
 
 开发使用 Node.js 24；配置见 `.env.example` 与[开发说明](../docs/development.md)。
 
-`npm run check` 执行单元、HTTP、构建和浏览器验收。`npm run build` 后 `npm start` 启动同源生产服务。当前为内容整理版，出行信息与图片授权待核验。
+`npm run check` 执行单元、HTTP、构建和浏览器验收。`npm run build` 后 `npm start` 启动同源生产服务。当前0.3.0聚焦喀什文化体验发现，详见[改版与资料范围](../docs/CULTURE_REDESIGN_2026-11-07.md)。接待安排与既有图片授权仍待核验。

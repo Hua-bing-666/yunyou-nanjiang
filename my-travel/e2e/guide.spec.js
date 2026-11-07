@@ -21,7 +21,7 @@ test.afterEach(async ({ page }) => {
 })
 
 test('visitor can browse without a login and find map fallback', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/destinations')
   await expect(page.getByRole('heading', { name: '看见风景，也读懂地方。' })).toBeVisible()
   await expect(page.locator('.spot-card')).toHaveCount(12)
   await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
@@ -47,18 +47,18 @@ test('detail deep links, reload, back and forward restore the right content', as
 })
 
 test('search includes regions and routes and explains no results', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/destinations')
   await page.getByLabel('搜索景点、地区或主题路线').fill('南疆人文')
   await page.getByRole('button', { name: '南疆人文经典线 主题路线 · 草稿' }).click()
   await expect(page).toHaveURL(/routes\?route=1/)
   await expect(page.getByLabel('出发日期（可选）')).toBeVisible()
-  await page.getByRole('button', { name: '景点导览', exact: true }).click()
+  await page.getByRole('button', { name: '南疆目的地', exact: true }).click()
   await page.getByLabel('搜索景点、地区或主题路线').fill('不存在的词语abc')
   await expect(page.getByText('没有找到相关内容，试试地区名或其他关键词。')).toBeVisible()
 })
 
 test('regions, favorites and reload retain correct records', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/destinations')
   await page.getByRole('button', { name: '喀什', exact: true }).click()
   await expect(page.locator('.spot-card')).toHaveCount(1)
   await page.getByRole('button', { name: '收藏喀什古城', exact: true }).click()
@@ -79,7 +79,7 @@ test('corrupt cache does not block guide, notes or itineraries', async ({ page }
   await page.goto('/detail/1')
   await expect(page.getByRole('heading', { name: '喀什古城', exact: true })).toBeVisible()
   await expect(page.getByText('还没有笔记，记下你想体验的事吧。')).toBeVisible()
-  await page.getByRole('button', { name: '我的行程', exact: true }).click()
+  await page.getByRole('link', { name: '我的行程', exact: true }).click()
   await expect(page.getByText('还没有保存行程。先浏览主题路线，再选择“保存行程”。')).toBeVisible()
 })
 
@@ -117,7 +117,7 @@ test('saved date survives reload, downloads text and creates a shareable deep li
   await page.goto('/routes?route=1&date=2026-10-20')
   await expect(page.getByLabel('出发日期（可选）')).toHaveValue('2026-10-20')
   await page.getByRole('button', { name: '保存行程', exact: true }).click()
-  await page.getByRole('button', { name: '我的行程', exact: true }).click()
+  await page.getByRole('link', { name: '我的行程', exact: true }).click()
   await page.reload()
   await expect(page.locator('.route-card')).toHaveCount(1)
   await page.getByRole('button', { name: /南疆人文经典线/ }).click()
@@ -148,7 +148,7 @@ test('saved date survives reload, downloads text and creates a shareable deep li
 test('local assistant shows its mode, source links and no fabricated ticket price', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/destinations')
   await page.getByRole('button', { name: '打开旅游助手' }).click()
   await page.getByLabel('向旅游助手提问').fill('喀什古城有什么文化特色？')
   await page.getByRole('button', { name: '发送问题' }).click()
@@ -162,7 +162,7 @@ test('assistant errors are visible and navigation remains usable', async ({ page
   await page.route('**/api/chat', (route) =>
     route.fulfill({ status: 429, contentType: 'application/json', body: '{"error":"rate limit"}' }),
   )
-  await page.goto('/')
+  await page.goto('/destinations')
   await page.getByRole('button', { name: '打开旅游助手' }).click()
   await page.getByLabel('向旅游助手提问').fill('测试')
   await page.getByRole('button', { name: '发送问题' }).click()
@@ -305,7 +305,7 @@ function installMapFixture() {
 test('map can retry after SDK failure and release instances during navigation', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/destinations')
   await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
   await expect(page.getByRole('button', { name: '重试地图' })).toBeVisible()
   await page.evaluate(installMapFixture)
@@ -374,7 +374,7 @@ test('late road response cannot restore a cleared route preview', async ({ page 
 test('assistant can be opened and closed using a keyboard and has accessible controls', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/destinations')
   await page.getByRole('button', { name: '打开旅游助手' }).focus()
   await page.keyboard.press('Enter')
   await expect(page.getByLabel('向旅游助手提问')).toBeFocused()
@@ -403,7 +403,8 @@ test('assistant can be opened and closed using a keyboard and has accessible con
 test('map information actions open the full map and correct detail without delayed handlers', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/destinations')
+  await expect(page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ })).toBeVisible()
   await page.evaluate(installMapFixture)
   await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
   await page.evaluate(() =>
@@ -422,7 +423,8 @@ test('map information actions open the full map and correct detail without delay
 test('suspended points stay available as content without invalid map markers or map centering', async ({
   page,
 }) => {
-  await page.goto('/')
+  await page.goto('/destinations')
+  await expect(page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ })).toBeVisible()
   await page.evaluate(installMapFixture)
   await page.getByRole('button', { name: /^(加载交互地图|重试地图)$/ }).click()
   await expect(page.locator('.spot-card')).toHaveCount(12)
@@ -478,7 +480,7 @@ test('every introduction has sources and legacy search names still find the corr
     ['轮台胡杨林', 8],
     ['喀什帕米尔白沙湖', 5],
   ]) {
-    await page.goto('/')
+    await page.goto('/destinations')
     await page.getByLabel('搜索景点、地区或主题路线').fill(keyword)
     await page.locator('.search-results').getByRole('button').first().click()
     await expect(page).toHaveURL(new RegExp(`/detail/${id}$`))

@@ -1,19 +1,41 @@
 <template>
-  <div class="app-shell">
+  <div
+    class="app-shell"
+    :class="{
+      'culture-shell': ['home', 'experiences', 'experience', 'collection', 'culture'].includes(
+        route.name,
+      ),
+    }"
+  >
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <header class="site-header">
       <a class="brand" href="/" @click.prevent="router.push('/')"
-        ><img src="/images/logo.webp" alt="" width="40" height="40" /><span
-          >云游南疆<small>丝路文化 · 旅行有据</small></span
-        ></a
+        ><span class="brand-symbol" aria-hidden="true">南</span
+        ><span>云游南疆<small>YUNYOU · SOUTHERN XINJIANG</small></span></a
       >
       <nav aria-label="主要导航">
         <button
           type="button"
-          :aria-current="route.name === 'home' ? 'page' : undefined"
+          :aria-current="
+            ['home', 'experiences', 'experience'].includes(route.name) ? 'page' : undefined
+          "
           @click="router.push('/')"
         >
-          景点导览
+          发现体验
+        </button>
+        <button
+          type="button"
+          :aria-current="route.name === 'culture' ? 'page' : undefined"
+          @click="router.push('/culture')"
+        >
+          文化手记
+        </button>
+        <button
+          type="button"
+          :aria-current="route.name === 'destinations' ? 'page' : undefined"
+          @click="router.push('/destinations')"
+        >
+          南疆目的地
         </button>
         <button
           type="button"
@@ -22,15 +44,26 @@
         >
           主题路线
         </button>
-        <button type="button" @click="router.push('/routes?saved=1')">我的行程</button>
-        <button type="button" @click="router.push('/culture')">文化资料</button>
       </nav>
+      <a class="header-collection" href="/collection" @click.prevent="router.push('/collection')"
+        ><svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          aria-hidden="true"
+        >
+          <path d="M6 3h12v18l-6-4-6 4V3Z" /></svg
+        ><span>我的清单</span><b v-if="cultureSaved.length">{{ cultureSaved.length }}</b></a
+      >
     </header>
     <main id="main-content">
       <p v-if="catalogState.cached" class="content-notice" role="status">
         当前显示上次缓存的公开资料，可能不是最新内容；恢复网络后请刷新核对。
       </p>
-      <template v-if="route.name === 'home'">
+      <ExperienceExplorer v-if="['home', 'experiences', 'collection'].includes(route.name)" />
+      <ExperienceDetail v-else-if="route.name === 'experience'" />
+      <template v-else-if="route.name === 'destinations'">
         <section class="hero">
           <div>
             <p class="eyebrow">沿着故事，走进南疆</p>
@@ -243,8 +276,9 @@
       </section>
     </main>
     <footer class="site-footer">
-      <p>云游南疆 · 文化导览与主题行程</p>
-      <a href="/stats" @click.prevent="router.push('/stats')">本站资料分布</a
+      <p>云游南疆 · 让文化，成为旅程的一部分。</p>
+      <a href="/routes?saved=1" @click.prevent="router.push('/routes?saved=1')">我的行程</a
+      ><a href="/stats" @click.prevent="router.push('/stats')">本站资料分布</a
       ><a href="/profile" @click.prevent="router.push('/profile')">游客资料与服务端行程</a
       ><a href="/admin">管理后台</a
       ><a
@@ -252,7 +286,7 @@
         target="_blank"
         rel="noopener noreferrer"
         >资料纠错与反馈 ↗</a
-      ><small>当前为内容整理与功能验证版本，出发前请核对官方最新信息。</small>
+      ><small>地点资料用于行前了解。接待、场次与消费，请以当日实际安排为准。</small>
     </footer>
     <AIAssistant />
   </div>
@@ -271,9 +305,13 @@ import { useGuideMap } from './composables/useGuideMap.js'
 import { getImageFormatSources } from './utils/imageAssets.js'
 import { getNanjiangRegionSpots } from './utils/nanjiangMap.js'
 import { hasMapPoint } from './utils/mapAvailability.js'
+import { useExperienceCollection } from './composables/useExperienceCollection.js'
 const Routes = defineAsyncComponent(() => import('./views/Routes.vue'))
 const Statistics = defineAsyncComponent(() => import('./views/Statistics.vue'))
 const AIAssistant = defineAsyncComponent(() => import('./views/AIAssistant.vue'))
+const ExperienceExplorer = defineAsyncComponent(() => import('./views/ExperienceExplorer.vue'))
+const ExperienceDetail = defineAsyncComponent(() => import('./views/ExperienceDetail.vue'))
+const { saved: cultureSaved } = useExperienceCollection()
 const Culture = defineAsyncComponent(() => import('./views/Culture.vue'))
 const VisitorProfile = defineAsyncComponent(() => import('./views/VisitorProfile.vue'))
 const router = useRouter()
@@ -286,8 +324,8 @@ const currentDetail = computed(() => spots.find((spot) => spot.id === currentDet
 const mapSpot = computed(() => spots.find((spot) => spot.id === Number(route.params.id)))
 const currentDetailImageSources = computed(() => getImageFormatSources(currentDetail.value.image))
 const goDetail = (id) => router.push(`/detail/${id}`)
-const backToList = () => router.push('/')
-const closeMapPage = () => router.push('/')
+const backToList = () => router.push('/destinations')
+const closeMapPage = () => router.push('/destinations')
 const openFullMapForSpot = (id) => router.push(`/map/${id}`)
 const navigationUrl = computed(
   () =>
@@ -374,12 +412,12 @@ watch(
   async () => {
     searchKeyword.value = ''
     destroyFullMap()
-    if (route.name !== 'home') {
+    if (route.name !== 'destinations') {
       cancelRoutePreview()
       destroyHomeMap()
     }
     await nextTick()
-    if (route.name === 'home') await ensureHomeMap()
+    if (route.name === 'destinations') await ensureHomeMap()
     if (route.name === 'map') {
       pendingHighlightSpotId.value = Number(route.params.id) || null
       await initFullMap()
@@ -388,7 +426,7 @@ watch(
 )
 onMounted(async () => {
   await nextTick()
-  if (route.name === 'home') await ensureHomeMap()
+  if (route.name === 'destinations') await ensureHomeMap()
   if (route.name === 'map') {
     pendingHighlightSpotId.value = Number(route.params.id) || null
     await initFullMap()

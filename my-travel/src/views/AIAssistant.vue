@@ -46,7 +46,7 @@
           <div class="header-left">
             <div class="assistant-avatar">🤖</div>
             <div class="header-text">
-              <span class="assistant-name">南疆旅游助手</span>
+              <span class="assistant-name">文化体验助手</span>
               <span class="assistant-status">依据平台资料 · 出行信息请核验</span>
             </div>
           </div>
@@ -281,12 +281,12 @@ const messages = ref([])
 const isTyping = ref(false)
 
 const presetList = ref([
-  '喀什古城有哪些手工艺？',
-  '怎样核对目的地资料？',
-  '推荐一条南疆经典路线',
-  '托喀依乡有什么特色？',
-  '克孜尔石窟有哪些文化价值？',
-  '慕士塔格峰怎么去？',
+  '哪里可以体验土陶手作？',
+  '百年老茶馆在哪里？',
+  '喀什博物馆在哪里？',
+  '高台民居适合看什么？',
+  '怎么保存文化清单？',
+  '英吉沙土陶村和古城顺路吗？',
 ])
 
 const currentPresetIndex = ref(0)
