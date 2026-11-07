@@ -125,7 +125,7 @@
           </section>
         </div>
       </template>
-      <template v-else-if="['spots', 'routes', 'articles'].includes(section)">
+      <template v-else-if="['spots', 'routes', 'articles', 'experiences'].includes(section)">
         <template v-if="!editing"
           ><div class="admin-toolbar">
             <label class="admin-search"
@@ -193,6 +193,72 @@
             ><label class="admin-check"
               ><input v-model="form.published" type="checkbox" />发布到游客网站</label
             >
+            <template v-if="section === 'experiences'">
+              <label>一句话体验<input v-model="form.subtitle" required maxlength="200" /></label>
+              <label
+                >体验类型<select v-model="form.category">
+                  <option value="craft">非遗手作</option>
+                  <option value="street">街巷漫游</option>
+                  <option value="museum">场馆看展</option>
+                  <option value="tea">茶馆日常</option>
+                  <option value="show">在地演艺</option>
+                </select></label
+              >
+              <label>区域名称<input v-model="form.area" required /></label
+              ><label
+                >区域范围<select v-model="form.scope">
+                  <option value="oldtown">老城片区</option>
+                  <option value="city">市区场馆</option>
+                  <option value="county">县域延伸，需单独交通</option>
+                </select></label
+              >
+              <label class="wide">具体地点<input v-model="form.address" required /></label
+              ><label
+                >地点精度说明<input v-model="form.addressLevel" placeholder="门牌／街道／片区"
+              /></label>
+              <label
+                >建议预留时间<input
+                  v-model="form.duration"
+                  placeholder="建议预留 1 小时"
+                  required /></label
+              ><label
+                >建议分钟数（用于整理，不代表官方时长）<input
+                  v-model.number="form.minutes"
+                  type="number"
+                  min="15"
+                  max="720"
+              /></label>
+              <label
+                >主题插画<select v-model="form.visual">
+                  <option value="architecture">建筑</option>
+                  <option value="pottery">土陶</option>
+                  <option value="museum">场馆</option>
+                  <option value="tea">茶</option>
+                  <option value="performance">演艺</option>
+                  <option value="bazaar">巴扎</option>
+                </select></label
+              >
+              <label class="wide"
+                >体验简介<textarea v-model="form.summary" rows="3" required></textarea></label
+              ><label class="wide"
+                >具体参与方式<textarea v-model="form.participation" rows="3" required></textarea>
+              </label>
+              <label class="wide"
+                >可以关注的内容（每行一项）<textarea
+                  v-model="form.highlightsText"
+                  rows="3"
+                ></textarea></label
+              ><label>标签（每行一项）<textarea v-model="form.tagsText" rows="3"></textarea></label
+              ><label
+                >行前要向接待方确认（每行一项）<textarea
+                  v-model="form.confirmText"
+                  rows="3"
+                ></textarea>
+              </label>
+              <label>开放与接待<textarea v-model="form.opening" rows="2"></textarea></label
+              ><label>预约与参与<textarea v-model="form.reservation" rows="2"></textarea></label
+              ><label>费用与消费<textarea v-model="form.fee" rows="2"></textarea></label>
+            </template>
             <template v-if="section === 'spots'"
               ><label>简短标签<input v-model="form.shortDesc" maxlength="100" /></label
               ><label
@@ -317,7 +383,15 @@
               <h3>公开来源</h3>
               <button
                 type="button"
-                @click="form.sources.push({ title: '', url: '', publisher: '', publishedAt: '' })"
+                @click="
+                  form.sources.push({
+                    title: '',
+                    url: '',
+                    publisher: '',
+                    publishedAt: '',
+                    fieldsText: '',
+                  })
+                "
               >
                 ＋ 添加来源
               </button>
@@ -334,8 +408,16 @@
                     pattern="https://.*"
                     required
                     maxlength="1500" /></label
-                ><label>原文发布日期<input v-model="source.publishedAt" type="date" /></label
-                ><button type="button" @click="form.sources.splice(index, 1)">移除此来源</button>
+                ><label>原文发布日期<input v-model="source.publishedAt" type="date" /></label>
+                <label v-if="section === 'experiences'" class="wide"
+                  >支持的字段（每行一项）<textarea
+                    v-model="source.fieldsText"
+                    rows="2"
+                    placeholder="例如：街道地址、手作参与方式；只填写原文确实支持的内容"
+                    required
+                  ></textarea>
+                </label>
+                <button type="button" @click="form.sources.splice(index, 1)">移除此来源</button>
               </div>
             </fieldset></template
           >
@@ -531,6 +613,7 @@ import { downloadText } from '../utils/itineraryCore.js'
 import '../assets/styles/admin.css'
 const sections = [
   { id: 'overview', label: '工作概览', symbol: '◫' },
+  { id: 'experiences', label: '文化体验', symbol: '◈' },
   { id: 'spots', label: '目的地管理', symbol: '◇' },
   { id: 'routes', label: '路线管理', symbol: '↗' },
   { id: 'articles', label: '文化资料', symbol: '▤' },
@@ -566,7 +649,10 @@ const credentials = ref({ username: 'admin', password: '' }),
   aiReply = ref(null),
   passwords = ref({ currentPassword: '', password: '' })
 const contentLabel = computed(
-  () => ({ spots: '目的地', routes: '路线', articles: '文化资料' })[section.value],
+  () =>
+    ({ spots: '目的地', routes: '路线', articles: '文化资料', experiences: '文化体验' })[
+      section.value
+    ],
 )
 const filtered = computed(() =>
   items.value.filter((item) =>
@@ -574,7 +660,7 @@ const filtered = computed(() =>
   ),
 )
 const metrics = computed(() => [
-  { label: '目的地', value: overview.value.spots || 0, note: '资料条目' },
+  { label: '文化体验', value: overview.value.experiences || 0, note: '具体地点与参与方式' },
   { label: '文化资料', value: overview.value.articles || 0, note: '主题短文' },
   { label: '游客资料', value: overview.value.visitors || 0, note: '自愿提交' },
   { label: '服务端行程', value: overview.value.itineraries || 0, note: '游客主动保存' },
@@ -645,7 +731,7 @@ async function navigate(id) {
   loading.value = true
   try {
     if (id === 'overview') overview.value = await api('/api/admin/overview')
-    if (['spots', 'routes', 'articles'].includes(id))
+    if (['spots', 'routes', 'articles', 'experiences'].includes(id))
       items.value = (await api(`/api/admin/${id}`)).items
     if (id === 'routes') allSpots.value = (await api('/api/admin/spots')).items
     if (id === 'visitors') {
@@ -663,6 +749,13 @@ async function navigate(id) {
 function edit(item) {
   form.value = JSON.parse(JSON.stringify(item))
   form.value.sources ||= []
+  for (const source of form.value.sources) source.fieldsText = (source.fields || []).join('\n')
+  for (const key of ['highlights', 'tags', 'confirm'])
+    form.value[key + 'Text'] = (item[key] || []).join('\n')
+  form.value.category ||= 'craft'
+  form.value.scope ||= 'oldtown'
+  form.value.minutes ||= 60
+  form.value.visual ||= 'pottery'
   aliases.value = (item.aliases || []).join('，')
   keywords.value = (item.keywords || []).join('，')
   editing.value = true
@@ -701,6 +794,20 @@ function newItem() {
 async function saveContent() {
   await attempt(async () => {
     const body = JSON.parse(JSON.stringify(form.value))
+    if (section.value === 'experiences')
+      body.sources = body.sources.map((source) => ({
+        ...source,
+        fields: (source.fieldsText || '')
+          .split('\n')
+          .map((field) => field.trim())
+          .filter(Boolean),
+      }))
+    if (section.value === 'experiences')
+      for (const key of ['highlights', 'tags', 'confirm'])
+        body[key] = (body[key + 'Text'] || '')
+          .split('\n')
+          .map((text) => text.trim())
+          .filter(Boolean)
     if (section.value === 'spots')
       body.aliases = aliases.value
         .split(/[,，]/)

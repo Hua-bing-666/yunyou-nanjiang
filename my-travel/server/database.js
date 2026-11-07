@@ -13,6 +13,7 @@ import {
 import { spots } from '../src/data/spots.js'
 import { recommendedRoutes } from '../src/data/routes.js'
 import { researchArticles } from './research.js'
+import { culturalExperiences, culturalEvents } from './experiences.js'
 import { ServiceError } from './errors.js'
 
 export const digest = (value) => createHash('sha256').update(value).digest('hex')
@@ -58,6 +59,21 @@ export function openStore(filename = ':memory:') {
             new Date().toISOString(),
           )
       db.prepare('INSERT INTO migrations(version) VALUES(1)').run()
+      db.exec('COMMIT')
+    } catch (error) {
+      db.exec('ROLLBACK')
+      throw error
+    }
+  }
+  if (!db.prepare('SELECT 1 FROM migrations WHERE version=2').get()) {
+    db.exec('BEGIN IMMEDIATE')
+    try {
+      const insert = db.prepare(
+        'INSERT OR IGNORE INTO content(kind,id,body,updated_at) VALUES(?,?,?,?)',
+      )
+      for (const item of culturalExperiences)
+        insert.run('experiences', item.id, JSON.stringify(item), new Date().toISOString())
+      db.prepare('INSERT INTO migrations(version) VALUES(2)').run()
       db.exec('COMMIT')
     } catch (error) {
       db.exec('ROLLBACK')
@@ -117,6 +133,8 @@ export function openStore(filename = ':memory:') {
       spots: activeSpots,
       routes: publicItems('routes').filter((route) => route.spotIds.every((id) => ids.has(id))),
       articles: publicItems('articles').filter((article) => article.status === 'source-reviewed'),
+      experiences: publicItems('experiences').filter((item) => item.status === 'source-reviewed'),
+      events: culturalEvents,
     }
   }
   function saveContent(kind, body, version, actor) {

@@ -33,6 +33,7 @@ export function sources(value) {
       url,
       publisher: text(item.publisher || '', 200),
       publishedAt: text(item.publishedAt || '', 10),
+      fields: strings(item.fields || [], 12, 120),
     }
   })
 }
@@ -79,7 +80,48 @@ export function validateContent(kind, value, store) {
     body.reviewedAt = text(value.reviewedAt || '', 10)
     if (body.status === 'source-reviewed' && (!body.sources.length || !validDate(body.reviewedAt)))
       fail('审核资料必须有来源和有效核对日期')
-    if (kind === 'articles') {
+    if (kind === 'experiences') {
+      if (
+        body.status === 'source-reviewed' &&
+        body.sources.some(
+          (source) => !source.fields.length || source.fields.some((field) => !field),
+        )
+      )
+        fail('已核对的文化体验需注明每份来源支持的字段')
+      for (const key of [
+        'name',
+        'subtitle',
+        'area',
+        'address',
+        'addressLevel',
+        'summary',
+        'participation',
+        'duration',
+        'opening',
+        'reservation',
+        'fee',
+        'visual',
+        'serviceStatus',
+      ])
+        body[key] = text(value[key] || '', key === 'participation' ? 1200 : 800)
+      if (!body.name || !body.address || !body.participation)
+        fail('体验名称、地点与参与方式不能为空')
+      if (
+        !['street', 'craft', 'museum', 'tea', 'show'].includes(value.category) ||
+        !['oldtown', 'city', 'county'].includes(value.scope)
+      )
+        fail('体验类型或区域无效')
+      body.category = value.category
+      body.scope = value.scope
+      body.minutes = Number(value.minutes)
+      if (!Number.isInteger(body.minutes) || body.minutes < 15 || body.minutes > 720)
+        fail('建议预留时间无效')
+      body.highlights = strings(value.highlights || [], 8, 200)
+      body.tags = strings(value.tags || [], 8, 40)
+      body.confirm = strings(value.confirm || [], 10, 250)
+      body.durationBasis = '编辑建议，非官方游览时长'
+      body.featured = value.featured === true
+    } else if (kind === 'articles') {
       Object.assign(body, {
         title: text(value.title, 100),
         topic: text(value.topic, 40),

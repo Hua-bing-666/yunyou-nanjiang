@@ -10,6 +10,7 @@ import 'vant/es/popup/index.css'
 import 'vant/es/overlay/index.css'
 import 'vant/es/loading/index.css'
 import './assets/styles/app.css'
+import './assets/styles/discovery.css'
 import { loadCatalog, catalogState } from './services/catalog.js'
 
 async function start() {

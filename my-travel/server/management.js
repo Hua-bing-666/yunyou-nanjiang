@@ -131,12 +131,13 @@ export function createManagement({ store, aiStatus, aiTest, aiQuery } = {}) {
           spots: store.list('spots').length,
           routes: store.list('routes').length,
           articles: store.list('articles').length,
+          experiences: store.list('experiences').length,
           visitors: store.db.prepare('SELECT COUNT(*) n FROM visitors').get().n,
           itineraries: store.db.prepare('SELECT COUNT(*) n FROM itineraries').get().n,
           ai: aiStatus(),
           audit: store.db.prepare('SELECT * FROM audit ORDER BY id DESC LIMIT 15').all(),
         })
-      const content = route.match(/^\/api\/admin\/(spots|routes|articles)(?:\/(\d+))?$/)
+      const content = route.match(/^\/api\/admin\/(spots|routes|articles|experiences)(?:\/(\d+))?$/)
       if (content) {
         const [, kind, id] = content
         if (req.method === 'GET') return respond({ items: store.list(kind) })

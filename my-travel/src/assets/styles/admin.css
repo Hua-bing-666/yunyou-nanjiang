@@ -83,6 +83,7 @@
   outline-offset: 3px;
 }
 .admin-sidebar {
+  overflow-y: auto;
   position: sticky;
   top: 0;
   height: 100vh;

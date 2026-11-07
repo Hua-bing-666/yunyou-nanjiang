@@ -739,7 +739,7 @@ export function useGuideMap({
     routeController = controller
     routeNotice.value = '路线示意：点位和行程待核验，不能用于道路导航'
     try {
-      await router.push('/')
+      await router.push('/destinations')
       await nextTick()
       await loadHomeMap()
       if (!homeMapInstance || controller.signal.aborted) return
@@ -753,7 +753,7 @@ export function useGuideMap({
             const result = await response.json()
             if (
               !controller.signal.aborted &&
-              router.currentRoute.value.name === 'home' &&
+              router.currentRoute.value.name === 'destinations' &&
               Array.isArray(result.path)
             ) {
               await renderRoutePolyline(validWaypoints, result.path)

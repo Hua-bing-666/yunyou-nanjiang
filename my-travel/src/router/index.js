@@ -1,12 +1,21 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { h } from 'vue'
-import { spots } from '../services/catalog.js'
+import { spots, experiences } from '../services/catalog.js'
 
 const shell = { render: () => h('span') }
 export const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', name: 'home', component: shell },
+    { path: '/destinations', name: 'destinations', component: shell },
+    { path: '/experiences', name: 'experiences', component: shell },
+    { path: '/collection', name: 'collection', component: shell },
+    {
+      path: '/experience/:id(\\d+)',
+      name: 'experience',
+      component: shell,
+      beforeEnter: (to) => experiences.some((item) => item.id === Number(to.params.id)) || '/',
+    },
     {
       path: '/detail/:id(\\d+)',
       name: 'detail',
@@ -26,7 +35,8 @@ export const router = createRouter({
     },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
-  scrollBehavior: () => ({ top: 0 }),
+  scrollBehavior: (to, from, savedPosition) =>
+    savedPosition || (to.path === from.path ? false : { top: 0 }),
 })
 
 router.beforeEach((to) => {
@@ -36,10 +46,14 @@ router.beforeEach((to) => {
     !spots.some((spot) => spot.id === Number(to.params.id))
   )
     return '/'
+  if (to.name === 'experience' && !experiences.some((item) => item.id === Number(to.params.id)))
+    return '/'
 })
 
 router.afterEach((to) => {
   const spot = spots.find((item) => item.id === Number(to.params.id))
+  const experience =
+    to.name === 'experience' ? experiences.find((item) => item.id === Number(to.params.id)) : null
   const title =
     {
       routes: '主题路线',
@@ -47,7 +61,12 @@ router.afterEach((to) => {
       map: '导览地图',
       culture: '文化资料',
       profile: '游客资料',
+      home: '发现文化体验',
+      destinations: '南疆目的地',
+      experiences: '文化体验',
+      collection: '我的文化清单',
     }[to.name] ||
+    experience?.name ||
     spot?.name ||
     '南疆文化导览'
   document.title = `${title} · 云游南疆`

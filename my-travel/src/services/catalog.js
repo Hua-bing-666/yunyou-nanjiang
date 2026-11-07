@@ -4,16 +4,21 @@ import { readStored, writeStored } from '../utils/storage.js'
 export const spots = reactive([])
 export const recommendedRoutes = reactive([])
 export const articles = reactive([])
+export const experiences = reactive([])
+export const cultureEvents = reactive([])
 export const catalogState = reactive({ loading: true, error: '', cached: false })
 const valid = (value) =>
   value &&
   Array.isArray(value.spots) &&
   Array.isArray(value.routes) &&
+  Array.isArray(value.experiences) &&
   Array.isArray(value.articles)
 function apply(value) {
   spots.splice(0, spots.length, ...value.spots)
   recommendedRoutes.splice(0, recommendedRoutes.length, ...value.routes)
   articles.splice(0, articles.length, ...value.articles)
+  experiences.splice(0, experiences.length, ...(value.experiences || []))
+  cultureEvents.splice(0, cultureEvents.length, ...(value.events || []))
 }
 export async function loadCatalog() {
   catalogState.loading = true
